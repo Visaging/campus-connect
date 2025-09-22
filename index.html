@@ -98,17 +98,17 @@
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-1">Location</label>
-                                    <input type="text" class="w-full p-3 border border-gray-300 rounded-lg" id="class-location" placeholder="e.g., Block A">
+                                    <input type="text" class="w-full p-3 border border-gray-300 rounded-lg" id="class-location" placeholder="e.g., AB-418">
                                 </div>
                             </div>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-1">Subject Name</label>
-                                    <input type="text" class="w-full p-3 border border-gray-300 rounded-lg" id="subject-name" placeholder="e.g., Physics" required>
+                                    <input type="text" class="w-full p-3 border border-gray-300 rounded-lg" id="subject-name" placeholder="e.g., Calculus" required>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-1">Professor</label>
-                                    <input type="text" class="w-full p-3 border border-gray-300 rounded-lg" id="professor-name" placeholder="e.g., Prof. Smith">
+                                    <input type="text" class="w-full p-3 border border-gray-300 rounded-lg" id="professor-name" placeholder="e.g., Akshat Agrawal">
                                 </div>
                             </div>
                             <button id="add-update-btn" class="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors">
@@ -153,7 +153,7 @@
                         <div class="mb-4">
                             <label for="group-code" class="block text-sm font-medium text-gray-700 mb-1">Group Code</label>
                             <div class="flex">
-                                <input type="text" id="group-code" class="flex-1 p-3 border border-gray-300 rounded-l-lg" placeholder="e.g., CAMPUS2024">
+                                <input type="text" id="group-code" class="flex-1 p-3 border border-gray-300 rounded-l-lg" placeholder="e.g., KYAKAROGE">
                                 <button onclick="joinGroup()" class="bg-green-600 text-white px-5 py-3 rounded-r-lg hover:bg-green-700 font-medium">Join</button>
                             </div>
                         </div>
@@ -260,7 +260,7 @@
             }
 
             try {
-                classesCollection = db.collection('groups').doc(groupCode).collection('classes');
+                classesCollection = db.collection('groups').doc(groupCode);
                 listenToGroupChanges();
                 showGroupStatus(`You are connected to group: ${groupCode}`, 'green');
                 switchTab('tracker');
