@@ -86,7 +86,6 @@
                                         <option value="Wednesday">Wednesday</option>
                                         <option value="Thursday">Thursday</option>
                                         <option value="Friday">Friday</option>
-                                        <option value="Saturday">Saturday</option>
                                     </select>
                                 </div>
                                 <div>
@@ -129,7 +128,6 @@
                                 <th class="p-4 text-left font-semibold text-gray-700">Wednesday</th>
                                 <th class="p-4 text-left font-semibold text-gray-700">Thursday</th>
                                 <th class="p-4 text-left font-semibold text-gray-700">Friday</th>
-                                <th class="p-4 text-left font-semibold text-gray-700">Saturday</th>
                             </tr>
                         </thead>
                         <tbody id="schedule-table"></tbody>
@@ -334,7 +332,19 @@
                 members.forEach(name => {
                     const memberDiv = document.createElement('div');
                     memberDiv.className = 'flex items-center p-3 bg-gray-50 rounded-lg';
-                    memberDiv.innerHTML = `<div class="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold">${name.charAt(0).toUpperCase()}</div><div class="ml-3 font-medium text-gray-900">${name}</div>`;
+                    
+                    // Create avatar element safely
+                    const avatarDiv = document.createElement('div');
+                    avatarDiv.className = 'w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold';
+                    avatarDiv.textContent = name.charAt(0).toUpperCase();
+                    
+                    // Create name element safely
+                    const nameDiv = document.createElement('div');
+                    nameDiv.className = 'ml-3 font-medium text-gray-900';
+                    nameDiv.textContent = name;
+                    
+                    memberDiv.appendChild(avatarDiv);
+                    memberDiv.appendChild(nameDiv);
                     membersList.appendChild(memberDiv);
                 });
             }
@@ -349,7 +359,29 @@
                     const activityDiv = document.createElement('div');
                     activityDiv.className = 'notification bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500';
                     const timeAgo = cls.createdAt ? formatTimeAgo(cls.createdAt.toDate()) : 'a moment ago';
-                    activityDiv.innerHTML = `<p class="text-sm text-gray-900"><b>${cls.addedBy}</b> added the class <b>${cls.subject}</b>.</p><p class="text-xs text-gray-500 mt-1">${timeAgo}</p>`;
+                    
+                    // Create main activity text safely
+                    const activityText = document.createElement('p');
+                    activityText.className = 'text-sm text-gray-900';
+                    
+                    const addedByBold = document.createElement('b');
+                    addedByBold.textContent = cls.addedBy;
+                    
+                    const subjectBold = document.createElement('b');
+                    subjectBold.textContent = cls.subject;
+                    
+                    activityText.appendChild(addedByBold);
+                    activityText.appendChild(document.createTextNode(' added the class '));
+                    activityText.appendChild(subjectBold);
+                    activityText.appendChild(document.createTextNode('.'));
+                    
+                    // Create time element safely
+                    const timeElement = document.createElement('p');
+                    timeElement.className = 'text-xs text-gray-500 mt-1';
+                    timeElement.textContent = timeAgo;
+                    
+                    activityDiv.appendChild(activityText);
+                    activityDiv.appendChild(timeElement);
                     activityList.appendChild(activityDiv);
                 });
             }
@@ -365,16 +397,55 @@
             schedule.forEach(cls => {
                 const classItem = document.createElement('div');
                 classItem.className = 'bg-gray-50 p-4 rounded-lg flex justify-between items-center';
-                classItem.innerHTML = `
-                    <div>
-                        <div class="font-medium text-gray-900">${cls.subject} <span class="text-xs font-normal text-gray-500">(by ${cls.addedBy || 'Unknown'})</span></div>
-                        <div class="text-sm text-gray-600">${cls.day} • ${formatTime(cls.startTime)}-${formatTime(cls.endTime)} • ${cls.location}</div>
-                        <div class="text-xs text-gray-500">Professor: ${cls.professor || 'N/A'}</div>
-                    </div>
-                    <div class="flex gap-2">
-                        <button class="text-blue-600 hover:text-blue-800" onclick="editClass('${cls.id}', \`${cls.day}\`, \`${cls.startTime}\`, \`${cls.endTime}\`, \`${cls.location}\`, \`${cls.subject}\`, \`${cls.professor}\`)"><i class="fas fa-edit"></i></button>
-                        <button class="text-red-600 hover:text-red-800" onclick="deleteClass('${cls.id}')"><i class="fas fa-trash"></i></button>
-                    </div>`;
+                
+                // Create main content div
+                const contentDiv = document.createElement('div');
+                
+                // Create subject line with user attribution - safely
+                const subjectLine = document.createElement('div');
+                subjectLine.className = 'font-medium text-gray-900';
+                subjectLine.textContent = cls.subject;
+                
+                const attribution = document.createElement('span');
+                attribution.className = 'text-xs font-normal text-gray-500';
+                attribution.textContent = ` (by ${cls.addedBy || 'Unknown'})`;
+                subjectLine.appendChild(attribution);
+                
+                // Create schedule line - safely
+                const scheduleLine = document.createElement('div');
+                scheduleLine.className = 'text-sm text-gray-600';
+                scheduleLine.textContent = `${cls.day} • ${formatTime(cls.startTime)}-${formatTime(cls.endTime)} • ${cls.location}`;
+                
+                // Create professor line - safely
+                const professorLine = document.createElement('div');
+                professorLine.className = 'text-xs text-gray-500';
+                professorLine.textContent = `Professor: ${cls.professor || 'N/A'}`;
+                
+                contentDiv.appendChild(subjectLine);
+                contentDiv.appendChild(scheduleLine);
+                contentDiv.appendChild(professorLine);
+                
+                // Create action buttons div
+                const actionsDiv = document.createElement('div');
+                actionsDiv.className = 'flex gap-2';
+                
+                // Create edit button safely
+                const editButton = document.createElement('button');
+                editButton.className = 'text-blue-600 hover:text-blue-800';
+                editButton.innerHTML = '<i class="fas fa-edit"></i>';
+                editButton.onclick = () => editClass(cls.id, cls.day, cls.startTime, cls.endTime, cls.location, cls.subject, cls.professor);
+                
+                // Create delete button safely
+                const deleteButton = document.createElement('button');
+                deleteButton.className = 'text-red-600 hover:text-red-800';
+                deleteButton.innerHTML = '<i class="fas fa-trash"></i>';
+                deleteButton.onclick = () => deleteClass(cls.id);
+                
+                actionsDiv.appendChild(editButton);
+                actionsDiv.appendChild(deleteButton);
+                
+                classItem.appendChild(contentDiv);
+                classItem.appendChild(actionsDiv);
                 classList.appendChild(classItem);
             });
         }
@@ -386,15 +457,36 @@
             timeSlots.forEach(timeSlot => {
                 const row = document.createElement('tr');
                 row.innerHTML = `<td class="p-3 border-t font-medium text-xs md:text-sm">${timeSlot}</td>`;
-                ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].forEach(day => {
+                ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].forEach(day => {
                     const cell = document.createElement('td');
                     cell.className = 'p-1 border-t relative';
                     const cellClasses = schedule.filter(cls => cls.day === day && isTimeInSlot(timeSlot, cls.startTime, cls.endTime));
                     if (cellClasses.length > 0) {
-                        cell.innerHTML = cellClasses.map(cls => `<div class="bg-blue-100 border border-blue-300 rounded-lg p-2 text-center mb-1">
-                            <div class="font-medium text-blue-900 text-sm">${cls.subject}</div>
-                            <div class="text-xs text-blue-700 hidden md:block">${cls.addedBy}</div>
-                        </div>`).join('');
+                        // Create class entries safely without innerHTML
+                        cellClasses.forEach(cls => {
+                            const classDiv = document.createElement('div');
+                            classDiv.className = 'bg-blue-100 border border-blue-300 rounded-lg p-2 text-center mb-1';
+                            
+                            // Create subject element safely
+                            const subjectDiv = document.createElement('div');
+                            subjectDiv.className = 'font-medium text-blue-900 text-sm';
+                            subjectDiv.textContent = cls.subject;
+                            
+                            // Create location element safely
+                            const locationDiv = document.createElement('div');
+                            locationDiv.className = 'text-xs text-blue-700';
+                            locationDiv.textContent = cls.location || 'No location';
+                            
+                            // Create addedBy element safely
+                            const addedByDiv = document.createElement('div');
+                            addedByDiv.className = 'text-xs text-blue-700 hidden md:block';
+                            addedByDiv.textContent = cls.addedBy;
+                            
+                            classDiv.appendChild(subjectDiv);
+                            classDiv.appendChild(locationDiv);
+                            classDiv.appendChild(addedByDiv);
+                            cell.appendChild(classDiv);
+                        });
                     }
                     row.appendChild(cell);
                 });
@@ -469,7 +561,7 @@
             return `${(h % 12 || 12)}:${m} ${h >= 12 ? 'PM' : 'AM'}`;
         }
         function generateTimeSlots() {
-            return Array.from({length: 11}, (_, i) => `${(i + 8).toString().padStart(2, '0')}:00`);
+            return ['08:30', '10:05', '11:40', '13:15', '14:50', '16:25', '18:00', '19:30'];
         }
         function isTimeInSlot(currentTime, startTime, endTime) {
             return currentTime >= startTime && currentTime < endTime;
