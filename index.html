@@ -144,7 +144,7 @@
 
                 <!-- Existing Group Activity and Members -->
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div>
+                    <div class="order-2 lg:order-1">
                         <div class="card bg-white border border-gray-200 rounded-xl p-6">
                             <h2 class="text-xl font-semibold mb-4 text-gray-800"><i class="fas fa-bell mr-2"></i>Recent Group Activity</h2>
                             <div id="recent-activity-list" class="space-y-4">
@@ -152,7 +152,7 @@
                             </div>
                         </div>
                     </div>
-                    <div>
+                    <div class="order-1 lg:order-2">
                         <div class="card bg-white border border-gray-200 rounded-xl p-6">
                             <h2 class="text-xl font-semibold mb-4 text-gray-800"><i class="fas fa-user-friends mr-2"></i>Group Members</h2>
                             <div id="group-members-list" class="space-y-3">
@@ -189,17 +189,17 @@
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-1">Location</label>
-                                    <input type="text" class="w-full p-3 border border-gray-300 rounded-lg" id="class-location" placeholder="e.g., AB-418">
+                                    <select class="w-full p-3 border border-gray-300 rounded-lg" id="class-location">
+                                        <option value="AB-1">AB-1</option>
+                                        <option value="AB-2">AB-2</option>
+                                        <option value="LC">LC</option>
+                                    </select>
                                 </div>
                             </div>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <div class="grid grid-cols-1 gap-4 mb-4">
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-1">Subject Name</label>
                                     <input type="text" class="w-full p-3 border border-gray-300 rounded-lg" id="subject-name" placeholder="e.g., Calculus" required>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Professor</label>
-                                    <input type="text" class="w-full p-3 border border-gray-300 rounded-lg" id="professor-name" placeholder="e.g., Akshat Agrawal">
                                 </div>
                             </div>
                             <button id="add-update-btn" class="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors">
@@ -491,6 +491,9 @@
             
             if (memberClassesToday.length === 0) return 'Hostel';
             
+            // Sort classes by start time
+            memberClassesToday.sort((a, b) => parseTimeToMinutes(a.startTime) - parseTimeToMinutes(b.startTime));
+            
             // Check if member is currently in class
             const currentClass = memberClassesToday.find(cls => {
                 const startTime = parseTimeToMinutes(cls.startTime);
@@ -503,6 +506,25 @@
             // Check if all classes for today are done
             const lastClassEndTime = Math.max(...memberClassesToday.map(cls => parseTimeToMinutes(cls.endTime)));
             if (currentTime > lastClassEndTime) return 'Hostel';
+            
+            // Check gap between classes to determine Hostel or Idle status
+            for (let i = 0; i < memberClassesToday.length - 1; i++) {
+                const currentClassEnd = parseTimeToMinutes(memberClassesToday[i].endTime);
+                const nextClassStart = parseTimeToMinutes(memberClassesToday[i + 1].startTime);
+                
+                // If current time is between classes
+                if (currentTime > currentClassEnd && currentTime < nextClassStart) {
+                    const gapMinutes = nextClassStart - currentClassEnd;
+                    // If gap is more than 1.5 hours (90 minutes), show Hostel, else show Idle
+                    return gapMinutes > 90 ? 'Hostel' : 'Idle';
+                }
+            }
+            
+            // If before first class of the day
+            if (memberClassesToday.length > 0) {
+                const firstClassStart = parseTimeToMinutes(memberClassesToday[0].startTime);
+                if (currentTime < firstClassStart) return 'Hostel';
+            }
             
             return '';
         }
@@ -639,9 +661,13 @@
                     
                     if (status) {
                         const statusTag = document.createElement('span');
-                        statusTag.className = status === 'Hostel' 
-                            ? 'px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full font-medium'
-                            : 'px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full font-medium';
+                        if (status === 'Hostel') {
+                            statusTag.className = 'px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full font-medium';
+                        } else if (status === 'Idle') {
+                            statusTag.className = 'px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full font-medium';
+                        } else {
+                            statusTag.className = 'px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full font-medium';
+                        }
                         statusTag.textContent = status;
                         
                         memberDiv.appendChild(leftDiv);
@@ -715,29 +741,24 @@
                 // Create main content div
                 const contentDiv = document.createElement('div');
                 
-                // Create subject line with user attribution - safely
+                // Create user name line on top - safely (larger font)
+                const userLine = document.createElement('div');
+                userLine.className = 'font-bold text-gray-900 text-base';
+                userLine.textContent = cls.addedBy || 'Unknown';
+                
+                // Create subject line - safely (smaller font)
                 const subjectLine = document.createElement('div');
-                subjectLine.className = 'font-medium text-gray-900';
+                subjectLine.className = 'font-medium text-gray-700 text-sm';
                 subjectLine.textContent = cls.subject;
                 
-                const attribution = document.createElement('span');
-                attribution.className = 'text-xs font-normal text-gray-500';
-                attribution.textContent = ` (by ${cls.addedBy || 'Unknown'})`;
-                subjectLine.appendChild(attribution);
-                
-                // Create schedule line - safely
+                // Create schedule line - safely (same font as subject)
                 const scheduleLine = document.createElement('div');
                 scheduleLine.className = 'text-sm text-gray-600';
                 scheduleLine.textContent = `${cls.day} • ${formatTime(cls.startTime)}-${formatTime(cls.endTime)} • ${cls.location}`;
                 
-                // Create professor line - safely
-                const professorLine = document.createElement('div');
-                professorLine.className = 'text-xs text-gray-500';
-                professorLine.textContent = `Professor: ${cls.professor || 'N/A'}`;
-                
+                contentDiv.appendChild(userLine);
                 contentDiv.appendChild(subjectLine);
                 contentDiv.appendChild(scheduleLine);
-                contentDiv.appendChild(professorLine);
                 
                 // Create action buttons div
                 const actionsDiv = document.createElement('div');
@@ -752,7 +773,7 @@
                     const editButton = document.createElement('button');
                     editButton.className = 'text-blue-600 hover:text-blue-800';
                     editButton.innerHTML = '<i class="fas fa-edit"></i>';
-                    editButton.onclick = () => editClass(cls.id, cls.day, cls.startTime, cls.endTime, cls.location, cls.subject, cls.professor);
+                    editButton.onclick = () => editClass(cls.id, cls.day, cls.startTime, cls.endTime, cls.location, cls.subject);
                     
                     // Create delete button safely
                     const deleteButton = document.createElement('button');
@@ -794,24 +815,24 @@
                             const classDiv = document.createElement('div');
                             classDiv.className = 'bg-blue-100 border border-blue-300 rounded-lg p-2 text-center mb-1';
                             
-                            // Create subject element safely
+                            // Create user name element safely (on top, bigger font)
+                            const addedByDiv = document.createElement('div');
+                            addedByDiv.className = 'font-medium text-blue-900 text-sm';
+                            addedByDiv.textContent = cls.addedBy;
+                            
+                            // Create subject element safely (smaller font)
                             const subjectDiv = document.createElement('div');
-                            subjectDiv.className = 'font-medium text-blue-900 text-sm';
+                            subjectDiv.className = 'text-xs text-blue-700';
                             subjectDiv.textContent = cls.subject;
                             
-                            // Create location element safely
+                            // Create location element safely (same font as subject)
                             const locationDiv = document.createElement('div');
                             locationDiv.className = 'text-xs text-blue-700';
                             locationDiv.textContent = cls.location || 'No location';
                             
-                            // Create addedBy element safely
-                            const addedByDiv = document.createElement('div');
-                            addedByDiv.className = 'text-xs text-blue-700';
-                            addedByDiv.textContent = cls.addedBy;
-                            
+                            classDiv.appendChild(addedByDiv);
                             classDiv.appendChild(subjectDiv);
                             classDiv.appendChild(locationDiv);
-                            classDiv.appendChild(addedByDiv);
                             cell.appendChild(classDiv);
                         });
                     }
@@ -828,9 +849,8 @@
                 day: document.getElementById('class-day').value,
                 startTime: document.getElementById('start-time').value,
                 endTime: document.getElementById('end-time').value,
-                location: document.getElementById('class-location').value.trim(),
+                location: document.getElementById('class-location').value,
                 subject: document.getElementById('subject-name').value.trim(),
-                professor: document.getElementById('professor-name').value.trim(),
                 addedBy: localStorage.getItem('userName') || 'Anonymous',
                 createdAt: firebase.firestore.FieldValue.serverTimestamp() // For activity feed
             };
@@ -840,13 +860,12 @@
                 .catch(error => console.error("Error adding document: ", error));
         }
 
-        function editClass(id, day, startTime, endTime, location, subject, professor) {
+        function editClass(id, day, startTime, endTime, location, subject) {
             document.getElementById('class-day').value = day;
             document.getElementById('start-time').value = startTime;
             document.getElementById('end-time').value = endTime;
             document.getElementById('class-location').value = location;
             document.getElementById('subject-name').value = subject;
-            document.getElementById('professor-name').value = professor === 'undefined' ? '' : professor;
 
             const actionButton = document.getElementById('add-update-btn');
             actionButton.innerHTML = '<i class="fas fa-save mr-2"></i>Update Class';
@@ -859,9 +878,8 @@
                 day: document.getElementById('class-day').value,
                 startTime: document.getElementById('start-time').value,
                 endTime: document.getElementById('end-time').value,
-                location: document.getElementById('class-location').value.trim(),
+                location: document.getElementById('class-location').value,
                 subject: document.getElementById('subject-name').value.trim(),
-                professor: document.getElementById('professor-name').value.trim(),
                 addedBy: localStorage.getItem('userName') || 'Anonymous' // Keep user tag
             };
             classesCollection.doc(id).update(updatedClass)
