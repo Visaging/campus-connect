@@ -8,68 +8,15 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
-        
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Poppins', sans-serif;
-        }
-        
-        body {
-            background-color: #f8fafc;
-            color: #334155;
-        }
-        
-        .card {
-            transition: transform 0.3s, box-shadow 0.3s;
-        }
-        
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
-        }
-        
-        .notification {
-            animation: fadeIn 0.5s ease-in;
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        .profile-btn {
-            transition: all 0.3s ease;
-        }
-        
-        .profile-btn:hover {
-            transform: scale(1.05);
-        }
-        
-        .tab-btn {
-            transition: all 0.3s ease;
-        }
-        
-        .tab-btn.active {
-            border-bottom: 3px solid #3b82f6;
-        }
-        
-        .schedule-item {
-            transition: background-color 0.2s ease;
-        }
-        
-        .schedule-item:hover {
-            background-color: #f1f5f9;
-        }
+        body { font-family: 'Poppins', sans-serif; background-color: #f8fafc; color: #334155; }
+        .card:hover { transform: translateY(-5px); box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1); }
+        .tab-btn.active { border-bottom: 3px solid #3b82f6; }
     </style>
 </head>
 <body class="min-h-screen">
     <div class="max-w-6xl mx-auto px-4 py-8">
         <header class="text-center mb-8">
-            <h1 class="text-4xl font-bold text-blue-600 mb-3">
-                <i class="fas fa-users mr-2"></i>Campus Connect
-            </h1>
+            <h1 class="text-4xl font-bold text-blue-600 mb-3"><i class="fas fa-users mr-2"></i>Campus Connect</h1>
             <p class="text-gray-600 text-lg">Track your friends' schedules and coordinate movements around campus</p>
         </header>
 
@@ -87,37 +34,22 @@
             </div>
 
             <div id="tracker-tab" class="tab-content p-6">
-                <div class="card bg-blue-50 rounded-xl p-6 mb-6">
-                    <h2 class="text-xl font-semibold mb-4 text-blue-800">
-                        <i class="fas fa-user-circle mr-2"></i>Select Your Profile
-                    </h2>
-                    <div class="flex flex-wrap gap-3">
-                        <button class="profile-btn px-5 py-3 bg-blue-600 text-white rounded-full font-medium">
-                            Me
-                        </button>
-                        </div>
-                </div>
-
                 <div class="card bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl p-6 mb-6 text-center text-white">
-                    <h2 id="current-time-heading" class="text-xl font-semibold mb-2">Current Time</h2>
+                    <h2 class="text-xl font-semibold mb-2">Current Time</h2>
                     <div id="current-time-display" class="text-4xl font-bold mb-1">...</div>
                     <div id="current-date-display" class="opacity-90">...</div>
                 </div>
-
                 <div class="text-center py-8">
-                    <p class="text-gray-500">Friend statuses will appear here once you connect to a group.</p>
+                    <p class="text-gray-500">A live overview of your group's schedule will appear here.</p>
                 </div>
-                
             </div>
             
             <div id="timetable-tab" class="tab-content hidden p-6">
                 <div class="mb-6">
-                    <h2 class="text-xl font-semibold mb-4 text-gray-800">
-                        <i class="fas fa-calendar-plus mr-2"></i>Add New Class
-                    </h2>
+                    <h2 class="text-xl font-semibold mb-4 text-gray-800"><i class="fas fa-calendar-plus mr-2"></i>Add / Edit Class</h2>
                     <div class="card bg-blue-50 rounded-xl p-6">
-                        <form id="add-class-form" onsubmit="event.preventDefault(); addClass();">
-                            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                        <form id="add-class-form" onsubmit="event.preventDefault();">
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-1">Day</label>
                                     <select class="w-full p-3 border border-gray-300 rounded-lg" id="class-day">
@@ -131,48 +63,35 @@
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
-                                    <input type="time" class="w-full p-3 border border-gray-300 rounded-lg" id="start-time">
+                                    <input type="time" class="w-full p-3 border border-gray-300 rounded-lg" id="start-time" required>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-1">End Time</label>
-                                    <input type="time" class="w-full p-3 border border-gray-300 rounded-lg" id="end-time">
+                                    <input type="time" class="w-full p-3 border border-gray-300 rounded-lg" id="end-time" required>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-1">Location</label>
-                                    <select class="w-full p-3 border border-gray-300 rounded-lg" id="class-location">
-                                        <option value="Block A">Block A</option>
-                                        <option value="Block B">Block B</option>
-                                        <option value="Block C">Block C</option>
-                                        <option value="Block D">Block D</option>
-                                        <option value="Block E">Block E</option>
-                                        <option value="Block F">Block F</option>
-                                        <option value="Library">Library</option>
-                                        <option value="Cafeteria">Cafeteria</option>
-                                        <option value="Sports Complex">Sports Complex</option>
-                                    </select>
+                                    <input type="text" class="w-full p-3 border border-gray-300 rounded-lg" id="class-location" placeholder="e.g., Block A">
                                 </div>
                             </div>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-1">Subject Name</label>
-                                    <input type="text" class="w-full p-3 border border-gray-300 rounded-lg" id="subject-name" placeholder="e.g., Mathematics, Physics">
+                                    <input type="text" class="w-full p-3 border border-gray-300 rounded-lg" id="subject-name" placeholder="e.g., Physics" required>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-1">Professor</label>
-                                    <input type="text" class="w-full p-3 border border-gray-300 rounded-lg" id="professor-name" placeholder="Professor name">
+                                    <input type="text" class="w-full p-3 border border-gray-300 rounded-lg" id="professor-name" placeholder="e.g., Prof. Smith">
                                 </div>
                             </div>
-                            <button id="add-update-btn" type="submit" class="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors">
+                            <button id="add-update-btn" class="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors">
                                 <i class="fas fa-plus mr-2"></i>Add Class
                             </button>
                         </form>
                     </div>
                 </div>
 
-                <h2 class="text-xl font-semibold mb-4 text-gray-800">
-                    <i class="fas fa-calendar-check mr-2"></i>My Weekly Schedule
-                </h2>
-                
+                <h2 class="text-xl font-semibold mb-4 text-gray-800"><i class="fas fa-calendar-check mr-2"></i>My Weekly Schedule</h2>
                 <div class="overflow-x-auto">
                     <table class="w-full bg-white rounded-xl shadow-sm">
                         <thead>
@@ -186,174 +105,98 @@
                                 <th class="p-4 text-left font-semibold text-gray-700">Saturday</th>
                             </tr>
                         </thead>
-                        <tbody id="schedule-table">
-                            </tbody>
+                        <tbody id="schedule-table"></tbody>
                     </table>
                 </div>
 
                 <div class="mt-6 card bg-white rounded-xl p-6">
-                    <h3 class="text-lg font-semibold mb-4 text-gray-800">
-                        <i class="fas fa-list mr-2"></i>Class List
-                    </h3>
-                    <div id="class-list" class="space-y-3">
-                        </div>
+                    <h3 class="text-lg font-semibold mb-4 text-gray-800"><i class="fas fa-list mr-2"></i>Class List</h3>
+                    <div id="class-list" class="space-y-3"></div>
                 </div>
             </div>
 
             <div id="group-tab" class="tab-content hidden p-6">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                    <div class="card bg-blue-50 rounded-xl p-6">
-                        <h2 class="text-xl font-semibold mb-4 text-blue-800">
-                            <i class="fas fa-users mr-2"></i>Group Code
-                        </h2>
-                        <div class="mb-4">
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Your Group Code</label>
-                            <div class="flex items-center">
-                                <input type="text" id="group-code-input" class="flex-1 p-3 border border-gray-300 rounded-l-lg" value="CAMPUS2024" readonly>
-                                <button onclick="copyGroupCode()" class="bg-blue-600 text-white p-3 rounded-r-lg hover:bg-blue-700">
-                                    <i class="fas fa-copy"></i>
-                                </button>
-                            </div>
-                            <p class="text-sm text-gray-600 mt-2">Share this code with your friends to connect</p>
-                        </div>
-                        
-                        <div class="mb-4">
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Join Another Group</label>
-                            <div class="flex items-center">
-                                <input type="text" id="join-group-input" class="flex-1 p-3 border border-gray-300 rounded-l-lg" placeholder="Enter group code">
-                                <button onclick="joinGroup()" class="bg-green-600 text-white p-3 rounded-r-lg hover:bg-green-700">
-                                    <i class="fas fa-sign-in-alt"></i>
-                                </button>
-                            </div>
-                        </div>
-                        
-                        <button onclick="generateNewCode()" class="w-full bg-gray-600 text-white py-3 rounded-lg hover:bg-gray-700">
-                            <i class="fas fa-sync mr-2"></i>Generate New Code
-                        </button>
-                    </div>
-
-                    <div class="card bg-white border border-gray-200 rounded-xl p-6">
-                        <h2 class="text-xl font-semibold mb-4 text-gray-800">
-                            <i class="fas fa-user-friends mr-2"></i>Group Members
-                        </h2>
-                        <div class="text-center py-8">
-                            <p class="text-gray-500">Members of your group will appear here.</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="card bg-white border border-gray-200 rounded-xl p-6 mt-6">
-                    <h2 class="text-xl font-semibold mb-4 text-gray-800">
-                        <i class="fas fa-cog mr-2"></i>Group Management
-                    </h2>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <button onclick="exportGroupSchedule()" class="p-4 bg-blue-100 rounded-lg text-blue-800 hover:bg-blue-200">
-                            <i class="fas fa-download mr-2"></i>Export My Schedule
-                        </button>
-                        <button onclick="shareGroupLink()" class="p-4 bg-green-100 rounded-lg text-green-800 hover:bg-green-200">
-                            <i class="fas fa-share-alt mr-2"></i>Share Group Link
-                        </button>
-                        <button onclick="setGroupPreferences()" class="p-4 bg-purple-100 rounded-lg text-purple-800 hover:bg-purple-200">
-                            <i class="fas fa-sliders-h mr-2"></i>Group Preferences
-                        </button>
-                        <button onclick="leaveGroup()" class="p-4 bg-red-100 rounded-lg text-red-800 hover:bg-red-200">
-                            <i class="fas fa-sign-out-alt mr-2"></i>Leave Group
-                        </button>
+                <div class="card bg-blue-50 rounded-xl p-6">
+                    <h2 class="text-xl font-semibold mb-4 text-blue-800"><i class="fas fa-users mr-2"></i>Group Management</h2>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Your Group Code</label>
+                        <p class="text-sm text-gray-600 mt-2">All data is synced to the database tied to this project. To create a separate group, you would need a new Firebase project.</p>
                     </div>
                 </div>
             </div>
         </div>
-
         <footer class="text-center mt-8 text-gray-500 text-sm">
-            <p>© 2025 Campus Connect - Created for college friends coordination</p>
+            <p>© 2025 Campus Connect</p>
         </footer>
     </div>
 
-    <div id="preferences-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
-        </div>
+    <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-firestore-compat.js"></script>
 
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            // Update time initially and then every minute
-            updateTime();
-            setInterval(updateTime, 60000);
-            
-            // Load initial states
-            loadTimetable();
-            initGroup();
+        // Your personal Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyC_1gMcl2CsFRzSMhntGTigeXfnYOHYoNk",
+            authDomain: "vit-campus-connect-cd0c3.firebaseapp.com",
+            projectId: "vit-campus-connect-cd0c3",
+            storageBucket: "vit-campus-connect-cd0c3.appspot.com",
+            messagingSenderId: "53637648658",
+            appId: "1:53637648658:web:fcea85d52f6b022c2c63cb"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const classesCollection = db.collection("classes");
+
+        // --- Live Data Listener ---
+        classesCollection.orderBy("startTime").onSnapshot(snapshot => {
+            const schedule = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            updateClassList(schedule);
+            updateScheduleTable(schedule);
         });
 
-        // Tab switching functionality
+        // --- App Initialization ---
+        document.addEventListener('DOMContentLoaded', () => {
+            updateTime();
+            setInterval(updateTime, 60000);
+            document.getElementById('add-update-btn').onclick = addClass; // Set initial button action
+        });
+
+        // --- Tab and UI Functions ---
         document.querySelectorAll('.tab-btn').forEach(button => {
             button.addEventListener('click', () => {
                 const tabName = button.getAttribute('data-tab');
-
                 document.querySelectorAll('.tab-btn').forEach(btn => {
-                    btn.classList.remove('active', 'text-blue-600', 'border-blue-600');
+                    btn.classList.remove('active', 'text-blue-600');
                     btn.classList.add('text-gray-500');
                 });
-                button.classList.add('active', 'text-blue-600', 'border-blue-600');
-                
+                button.classList.add('active', 'text-blue-600');
                 document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
                 document.getElementById(tabName + '-tab').classList.remove('hidden');
-                
-                if (tabName === 'timetable') {
-                    loadTimetable();
-                } else if (tabName === 'group') {
-                    initGroup();
-                }
             });
         });
 
-        // Profile selection functionality
-        document.querySelectorAll('.profile-btn').forEach(button => {
-            button.addEventListener('click', () => {
-                document.querySelectorAll('.profile-btn').forEach(btn => {
-                    btn.classList.remove('bg-blue-600', 'text-white');
-                    btn.classList.add('bg-white', 'text-blue-600', 'border', 'border-blue-300');
-                });
-                button.classList.remove('bg-white', 'text-blue-600', 'border', 'border-blue-300');
-                button.classList.add('bg-blue-600', 'text-white');
-                
-                const profileName = button.textContent.trim();
-                document.querySelector('#tracker-tab h2').innerHTML = `<i class="fas fa-user-circle mr-2"></i>Selected Profile: ${profileName}`;
-            });
-        });
-
-        // Update time display
         function updateTime() {
             const now = new Date();
             const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            const dateString = now.toLocaleDateString('en-US', { 
-                weekday: 'long', 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
-            });
-            
+            const dateString = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
             document.getElementById('current-time-display').textContent = timeString;
             document.getElementById('current-date-display').textContent = dateString;
         }
 
-        // --- Timetable Management Functions ---
-        function loadTimetable() {
-            const schedule = JSON.parse(localStorage.getItem('classSchedule') || '[]');
-            updateClassList(schedule);
-            updateScheduleTable(schedule);
-        }
-        
+        // --- UI Update Functions ---
         function updateClassList(schedule) {
             const classList = document.getElementById('class-list');
             classList.innerHTML = '';
-            
             if (schedule.length === 0) {
-                classList.innerHTML = '<p class="text-gray-500 text-center">Your added classes will be listed here.</p>';
+                classList.innerHTML = '<p class="text-gray-500 text-center">Add your first class using the form above!</p>';
                 return;
             }
-
-            schedule.forEach((cls, index) => {
+            schedule.forEach(cls => {
                 const classItem = document.createElement('div');
                 classItem.className = 'bg-gray-50 p-4 rounded-lg flex justify-between items-center';
+                // Using template literals to pass all arguments cleanly
                 classItem.innerHTML = `
                     <div>
                         <div class="font-medium text-gray-900">${cls.subject}</div>
@@ -361,63 +204,98 @@
                         <div class="text-xs text-gray-500">Professor: ${cls.professor || 'N/A'}</div>
                     </div>
                     <div class="flex gap-2">
-                        <button class="text-blue-600 hover:text-blue-800" onclick="editClass(${index})">
+                        <button class="text-blue-600 hover:text-blue-800" onclick="editClass('${cls.id}', \`${cls.day}\`, \`${cls.startTime}\`, \`${cls.endTime}\`, \`${cls.location}\`, \`${cls.subject}\`, \`${cls.professor}\`)">
                             <i class="fas fa-edit"></i>
                         </button>
-                        <button class="text-red-600 hover:text-red-800" onclick="deleteClass(${index})">
+                        <button class="text-red-600 hover:text-red-800" onclick="deleteClass('${cls.id}')">
                             <i class="fas fa-trash"></i>
                         </button>
-                    </div>
-                `;
+                    </div>`;
                 classList.appendChild(classItem);
             });
         }
-        
+
         function updateScheduleTable(schedule) {
             const timeSlots = generateTimeSlots();
             const tableBody = document.getElementById('schedule-table');
             tableBody.innerHTML = '';
-            
             timeSlots.forEach(timeSlot => {
                 const row = document.createElement('tr');
                 row.innerHTML = `<td class="p-3 border-t font-medium text-xs md:text-sm">${timeSlot}</td>`;
-                
                 ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].forEach(day => {
-                    const cellClasses = schedule.filter(cls => 
-                        cls.day === day && 
-                        isTimeInSlot(timeSlot, cls.startTime, cls.endTime)
-                    );
-                    
                     const cell = document.createElement('td');
                     cell.className = 'p-1 border-t';
-                    
+                    const cellClasses = schedule.filter(cls => cls.day === day && isTimeInSlot(timeSlot, cls.startTime, cls.endTime));
                     if (cellClasses.length > 0) {
-                        const cls = cellClasses[0];
-                        cell.innerHTML = `
-                            <div class="bg-blue-100 border border-blue-300 rounded-lg p-2 text-center">
-                                <div class="font-medium text-blue-900 text-sm">${cls.subject}</div>
-                                <div class="text-xs text-blue-700 hidden md:block">${cls.location}</div>
-                            </div>
-                        `;
+                        cell.innerHTML = `<div class="bg-blue-100 border border-blue-300 rounded-lg p-2 text-center">
+                            <div class="font-medium text-blue-900 text-sm">${cellClasses[0].subject}</div>
+                            <div class="text-xs text-blue-700 hidden md:block">${cellClasses[0].location}</div>
+                        </div>`;
                     }
                     row.appendChild(cell);
                 });
                 tableBody.appendChild(row);
             });
         }
-        
-        function generateTimeSlots() {
-            const slots = [];
-            for (let hour = 8; hour <= 18; hour++) {
-                slots.push(`${hour.toString().padStart(2, '0')}:00`);
+
+        // --- Firestore CRUD Functions ---
+        function addClass() {
+            const newClass = {
+                day: document.getElementById('class-day').value,
+                startTime: document.getElementById('start-time').value,
+                endTime: document.getElementById('end-time').value,
+                location: document.getElementById('class-location').value.trim(),
+                subject: document.getElementById('subject-name').value.trim(),
+                professor: document.getElementById('professor-name').value.trim()
+            };
+            if (!newClass.subject || !newClass.startTime || !newClass.endTime) {
+                alert('Please fill in Subject, Start Time, and End Time.');
+                return;
             }
-            return slots;
-        }
-        
-        function isTimeInSlot(currentTime, startTime, endTime) {
-            return currentTime >= startTime && currentTime < endTime;
+            classesCollection.add(newClass)
+                .then(() => document.getElementById('add-class-form').reset())
+                .catch(error => console.error("Error adding document: ", error));
         }
 
+        function editClass(id, day, startTime, endTime, location, subject, professor) {
+            document.getElementById('class-day').value = day;
+            document.getElementById('start-time').value = startTime;
+            document.getElementById('end-time').value = endTime;
+            document.getElementById('class-location').value = location;
+            document.getElementById('subject-name').value = subject;
+            document.getElementById('professor-name').value = professor === 'undefined' ? '' : professor; // Handle undefined professor
+
+            const actionButton = document.getElementById('add-update-btn');
+            actionButton.innerHTML = '<i class="fas fa-save mr-2"></i>Update Class';
+            actionButton.onclick = () => updateClass(id);
+        }
+
+        function updateClass(id) {
+            const updatedClass = {
+                day: document.getElementById('class-day').value,
+                startTime: document.getElementById('start-time').value,
+                endTime: document.getElementById('end-time').value,
+                location: document.getElementById('class-location').value.trim(),
+                subject: document.getElementById('subject-name').value.trim(),
+                professor: document.getElementById('professor-name').value.trim()
+            };
+            classesCollection.doc(id).update(updatedClass)
+                .then(() => {
+                    document.getElementById('add-class-form').reset();
+                    const actionButton = document.getElementById('add-update-btn');
+                    actionButton.innerHTML = '<i class="fas fa-plus mr-2"></i>Add Class';
+                    actionButton.onclick = addClass;
+                })
+                .catch(error => console.error("Error updating document: ", error));
+        }
+
+        function deleteClass(id) {
+            if (confirm('Are you sure you want to delete this class?')) {
+                classesCollection.doc(id).delete().catch(error => console.error("Error removing document: ", error));
+            }
+        }
+
+        // --- Helper Functions ---
         function formatTime(timeString) {
             if (!timeString) return '';
             const [hours, minutes] = timeString.split(':');
@@ -427,165 +305,16 @@
             return `${formattedHour}:${minutes} ${period}`;
         }
         
-        function addClass() {
-            const newClass = {
-                day: document.getElementById('class-day').value,
-                startTime: document.getElementById('start-time').value,
-                endTime: document.getElementById('end-time').value,
-                location: document.getElementById('class-location').value,
-                subject: document.getElementById('subject-name').value.trim(),
-                professor: document.getElementById('professor-name').value.trim()
-            };
-
-            if (!newClass.subject || !newClass.startTime || !newClass.endTime) {
-                alert('Please fill in Subject, Start Time, and End Time.');
-                return;
+        function generateTimeSlots() {
+            const slots = [];
+            for (let hour = 8; hour <= 18; hour++) {
+                slots.push(`${hour.toString().padStart(2, '0')}:00`);
             }
-            
-            const schedule = JSON.parse(localStorage.getItem('classSchedule') || '[]');
-            schedule.push(newClass);
-            localStorage.setItem('classSchedule', JSON.stringify(schedule));
-            
-            document.getElementById('add-class-form').reset();
-            loadTimetable();
-            alert('Class added successfully!');
-        }
-        
-        function editClass(index) {
-            const schedule = JSON.parse(localStorage.getItem('classSchedule') || '[]');
-            const cls = schedule[index];
-            
-            document.getElementById('class-day').value = cls.day;
-            document.getElementById('start-time').value = cls.startTime;
-            document.getElementById('end-time').value = cls.endTime;
-            document.getElementById('class-location').value = cls.location;
-            document.getElementById('subject-name').value = cls.subject;
-            document.getElementById('professor-name').value = cls.professor;
-            
-            const actionButton = document.getElementById('add-update-btn');
-            actionButton.innerHTML = '<i class="fas fa-save mr-2"></i>Update Class';
-            actionButton.onclick = () => updateClass(index);
-            actionButton.type = 'button'; // Prevent form submission
-            
-            document.getElementById('class-day').scrollIntoView({ behavior: 'smooth' });
-        }
-        
-        function updateClass(index) {
-            const schedule = JSON.parse(localStorage.getItem('classSchedule') || '[]');
-            schedule[index] = {
-                day: document.getElementById('class-day').value,
-                startTime: document.getElementById('start-time').value,
-                endTime: document.getElementById('end-time').value,
-                location: document.getElementById('class-location').value,
-                subject: document.getElementById('subject-name').value.trim(),
-                professor: document.getElementById('professor-name').value.trim()
-            };
-            
-            if (!schedule[index].subject || !schedule[index].startTime || !schedule[index].endTime) {
-                alert('Please fill in Subject, Start Time, and End Time.');
-                return;
-            }
-
-            localStorage.setItem('classSchedule', JSON.stringify(schedule));
-            
-            document.getElementById('add-class-form').reset();
-            const actionButton = document.getElementById('add-update-btn');
-            actionButton.innerHTML = '<i class="fas fa-plus mr-2"></i>Add Class';
-            actionButton.onclick = addClass;
-            actionButton.type = 'submit';
-            
-            loadTimetable();
-            alert('Class updated successfully!');
-        }
-        
-        function deleteClass(index) {
-            if (confirm('Are you sure you want to delete this class?')) {
-                const schedule = JSON.parse(localStorage.getItem('classSchedule') || '[]');
-                schedule.splice(index, 1);
-                localStorage.setItem('classSchedule', JSON.stringify(schedule));
-                loadTimetable();
-            }
+            return slots;
         }
 
-        // --- Group Management Functions ---
-        function copyGroupCode() {
-            const codeInput = document.getElementById('group-code-input');
-            codeInput.select();
-            codeInput.setSelectionRange(0, 99999); 
-            navigator.clipboard.writeText(codeInput.value).then(() => {
-                alert('Group code copied to clipboard!');
-            });
-        }
-
-        function joinGroup() {
-            const joinCode = document.getElementById('join-group-input').value.trim();
-            if (!joinCode) {
-                alert('Please enter a group code');
-                return;
-            }
-            
-            if (confirm(`Join group with code: ${joinCode}?`)) {
-                document.getElementById('group-code-input').value = joinCode;
-                localStorage.setItem('groupCode', joinCode);
-                alert('Successfully joined the group!');
-                document.getElementById('join-group-input').value = '';
-            }
-        }
-
-        function generateNewCode() {
-            if (confirm('Generate a new group code? This will not affect current members.')) {
-                const newCode = 'CAMPUS' + Math.floor(1000 + Math.random() * 9000);
-                document.getElementById('group-code-input').value = newCode;
-                localStorage.setItem('groupCode', newCode);
-                alert(`New group code: ${newCode}`);
-            }
-        }
-
-        function exportGroupSchedule() {
-            const schedule = JSON.parse(localStorage.getItem('classSchedule') || '[]');
-            if (schedule.length === 0) {
-                alert('Please add at least one class to your schedule before exporting.');
-                return;
-            }
-
-            let textContent = "My Campus Connect Schedule:\n\n";
-            schedule.forEach(cls => {
-                textContent += `${cls.day}: ${cls.subject} (${formatTime(cls.startTime)} - ${formatTime(cls.endTime)}) at ${cls.location}\n`;
-            });
-
-            const blob = new Blob([textContent], { type: 'text/plain' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = 'my-campus-schedule.txt';
-            link.click();
-            URL.revokeObjectURL(link.href);
-        }
-
-        function shareGroupLink() {
-            const code = document.getElementById('group-code-input').value;
-            const link = `(Your website URL here)?code=${code}`;
-            navigator.clipboard.writeText(link).then(() => {
-                alert(`Share this link with friends (copied to clipboard):\n${link}\n(Remember to replace '(Your website URL here)' with the actual link!)`);
-            });
-        }
-
-        function setGroupPreferences() {
-            alert('Preferences modal would open here.');
-        }
-
-        function leaveGroup() {
-            if (confirm('Are you sure you want to leave this group?')) {
-                localStorage.removeItem('groupCode');
-                document.getElementById('group-code-input').value = 'CAMPUS2024'; // Reset to default
-                alert('You have left the group.');
-            }
-        }
-
-        function initGroup() {
-            const savedCode = localStorage.getItem('groupCode');
-            if (savedCode) {
-                document.getElementById('group-code-input').value = savedCode;
-            }
+        function isTimeInSlot(currentTime, startTime, endTime) {
+            return currentTime >= startTime && currentTime < endTime;
         }
     </script>
 </body>
