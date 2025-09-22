@@ -37,8 +37,23 @@
             </div>
 
             <div id="tracker-tab" class="tab-content p-6">
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div class="lg:col-span-2">
+                <!-- Current Time Clock Display -->
+                <div class="mb-6">
+                    <div class="bg-gradient-to-r from-blue-500 to-blue-700 rounded-xl p-8 text-center text-white">
+                        <h3 class="text-lg font-medium mb-2 opacity-90">Current Time</h3>
+                        <div id="current-time" class="text-4xl font-bold mb-2">11:34 PM</div>
+                        <div id="current-date" class="text-lg opacity-90">Monday, September 22, 2025</div>
+                    </div>
+                </div>
+
+                <!-- Friend Status Message -->
+                <div class="mb-6 text-center">
+                    <p class="text-gray-500">Friend statuses will appear here once you connect to a group.</p>
+                </div>
+
+                <!-- Existing Group Activity and Members -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div>
                         <div class="card bg-white border border-gray-200 rounded-xl p-6">
                             <h2 class="text-xl font-semibold mb-4 text-gray-800"><i class="fas fa-bell mr-2"></i>Recent Group Activity</h2>
                             <div id="recent-activity-list" class="space-y-4">
@@ -46,7 +61,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="lg:col-span-1">
+                    <div>
                         <div class="card bg-white border border-gray-200 rounded-xl p-6">
                             <h2 class="text-xl font-semibold mb-4 text-gray-800"><i class="fas fa-user-friends mr-2"></i>Group Members</h2>
                             <div id="group-members-list" class="space-y-3">
@@ -97,11 +112,9 @@
                                     <input type="text" class="w-full p-3 border border-gray-300 rounded-lg" id="professor-name" placeholder="e.g., Prof. Smith">
                                 </div>
                             </div>
-                            <div id="form-buttons" class="flex items-center gap-4">
-                                <button id="add-update-btn" class="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors">
-                                    <i class="fas fa-plus mr-2"></i>Add Class
-                                </button>
-                            </div>
+                            <button id="add-update-btn" class="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors">
+                                <i class="fas fa-plus mr-2"></i>Add Class
+                            </button>
                         </form>
                     </div>
                 </div>
@@ -172,11 +185,28 @@
             appId: "1:53637648658:web:fcea85d52f6b022c2c63cb"
         };
 
-        // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
+        // Initialize Firebase with error handling
+        let db = null;
         let classesCollection = null;
         let unsubscribe = null;
+        
+        try {
+            firebase.initializeApp(firebaseConfig);
+            db = firebase.firestore();
+            
+            // Configure Firestore settings for better connectivity
+            db.settings({
+                experimentalForceLongPolling: true // Use long polling instead of WebChannel
+            });
+            
+            // Enable offline persistence
+            db.enablePersistence().catch(error => {
+                console.log('Offline persistence failed:', error);
+            });
+            
+        } catch (error) {
+            console.error('Firebase initialization failed:', error);
+        }
 
         // --- App Initialization ---
         document.addEventListener('DOMContentLoaded', () => {
@@ -189,7 +219,32 @@
                 showGroupStatus('Enter your name and a group code to begin.', 'blue');
             }
             document.getElementById('add-update-btn').onclick = addClass;
+            
+            // Initialize clock
+            updateClock();
+            setInterval(updateClock, 1000); // Update every second
         });
+        
+        // --- Clock Functions ---
+        function updateClock() {
+            const now = new Date();
+            
+            // Format time (12-hour format with AM/PM)
+            let hours = now.getHours();
+            const minutes = now.getMinutes().toString().padStart(2, '0');
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            hours = hours % 12;
+            hours = hours ? hours : 12; // Handle midnight (0 hours)
+            const timeString = `${hours}:${minutes} ${ampm}`;
+            
+            // Format date
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            const dateString = now.toLocaleDateString('en-US', options);
+            
+            // Update DOM
+            document.getElementById('current-time').textContent = timeString;
+            document.getElementById('current-date').textContent = dateString;
+        }
 
         // --- Group Management ---
         function joinGroup() {
@@ -201,11 +256,20 @@
             localStorage.setItem('userName', userName);
             localStorage.setItem('groupCode', groupCode);
 
-            classesCollection = db.collection('groups').doc(groupCode).collection('classes');
-            
-            listenToGroupChanges();
-            showGroupStatus(`You are connected to group: ${groupCode}`, 'green');
-            switchTab('tracker');
+            if (!db) {
+                showGroupStatus('Firebase connection unavailable. Please check your internet connection.', 'red');
+                return;
+            }
+
+            try {
+                classesCollection = db.collection('groups').doc(groupCode).collection('classes');
+                listenToGroupChanges();
+                showGroupStatus(`You are connected to group: ${groupCode}`, 'green');
+                switchTab('tracker');
+            } catch (error) {
+                console.error('Error joining group:', error);
+                showGroupStatus('Error connecting to group. Please try again.', 'red');
+            }
         }
         
         function listenToGroupChanges() {
@@ -213,25 +277,35 @@
             
             unsubscribe = classesCollection.onSnapshot(snapshot => {
                 const schedule = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                // Update all parts of the UI that depend on schedule data
                 updateClassList(schedule);
                 updateScheduleTable(schedule);
                 updateTrackerTab(schedule);
+                
+                // Update group status to show successful connection
+                if (snapshot.docs.length >= 0) {
+                    const groupCode = localStorage.getItem('groupCode');
+                    showGroupStatus(`Connected to group: ${groupCode} (${snapshot.docs.length} classes)`, 'green');
+                }
             }, error => {
                 console.error("Error listening to group changes: ", error);
-                showGroupStatus(`Error connecting to group. Check console for details.`, 'red');
+                const errorMsg = error.code === 'unavailable' 
+                    ? 'Firebase is offline. App will work locally until connection is restored.'
+                    : `Error connecting to group: ${error.message}`;
+                showGroupStatus(errorMsg, 'red');
             });
         }
         
         function showGroupStatus(message, color) {
             const statusDiv = document.getElementById('group-status');
             statusDiv.textContent = message;
-            statusDiv.className = 'text-center mt-6 p-4 rounded-lg font-medium opacity-100 transition-opacity';
+            statusDiv.className = 'text-center mt-6 p-4 rounded-lg font-medium opacity-100 transition-opacity'; // Reset classes
             if (color === 'green') statusDiv.classList.add('bg-green-100', 'text-green-800');
             else if (color === 'red') statusDiv.classList.add('bg-red-100', 'text-red-800');
             else statusDiv.classList.add('bg-gray-100', 'text-gray-700');
         }
 
-        // --- Tab Switching ---
+        // --- Tab and UI Functions ---
         function switchTab(tabName) {
             document.querySelectorAll('.tab-btn').forEach(btn => {
                 btn.classList.remove('active', 'text-blue-600');
@@ -252,9 +326,10 @@
             membersList.innerHTML = '';
             activityList.innerHTML = '';
 
+            // Update Group Members
             const members = [...new Set(schedule.map(cls => cls.addedBy || 'Unknown'))];
             if (members.length === 0) {
-                membersList.innerHTML = '<p class="text-gray-500">Members will appear here.</p>';
+                membersList.innerHTML = '<p class="text-gray-500">Members will appear here as they add classes.</p>';
             } else {
                 members.forEach(name => {
                     const memberDiv = document.createElement('div');
@@ -264,22 +339,17 @@
                 });
             }
 
-            const sortedSchedule = schedule.sort((a, b) => {
-                const timeA = a.updatedAt || a.createdAt;
-                const timeB = b.updatedAt || b.createdAt;
-                return (timeB?.toMillis() || 0) - (timeA?.toMillis() || 0);
-            });
-            const recentActivity = sortedSchedule.slice(0, 5);
+            // Update Recent Activity
+            const sortedSchedule = schedule.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
+            const recentActivity = sortedSchedule.slice(0, 5); // Get latest 5 activities
             if (recentActivity.length === 0) {
-                 activityList.innerHTML = '<p class="text-gray-500">No recent activity.</p>';
+                 activityList.innerHTML = '<p class="text-gray-500">Join a group to see the latest activity.</p>';
             } else {
                 recentActivity.forEach(cls => {
                     const activityDiv = document.createElement('div');
                     activityDiv.className = 'notification bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500';
-                    const actionTime = cls.updatedAt || cls.createdAt;
-                    const timeAgo = actionTime ? formatTimeAgo(actionTime.toDate()) : 'just now';
-                    const actionText = cls.updatedAt ? 'edited the class' : 'added the class';
-                    activityDiv.innerHTML = `<p class="text-sm text-gray-900"><b>${cls.addedBy}</b> ${actionText} <b>${cls.subject}</b>.</p><p class="text-xs text-gray-500 mt-1">${timeAgo}</p>`;
+                    const timeAgo = cls.createdAt ? formatTimeAgo(cls.createdAt.toDate()) : 'a moment ago';
+                    activityDiv.innerHTML = `<p class="text-sm text-gray-900"><b>${cls.addedBy}</b> added the class <b>${cls.subject}</b>.</p><p class="text-xs text-gray-500 mt-1">${timeAgo}</p>`;
                     activityList.appendChild(activityDiv);
                 });
             }
@@ -292,8 +362,7 @@
                 classList.innerHTML = '<p class="text-gray-500 text-center">No classes in this group yet. Add one from the form above!</p>';
                 return;
             }
-             const sortedByName = schedule.sort((a, b) => a.startTime.localeCompare(b.startTime));
-            sortedByName.forEach(cls => {
+            schedule.forEach(cls => {
                 const classItem = document.createElement('div');
                 classItem.className = 'bg-gray-50 p-4 rounded-lg flex justify-between items-center';
                 classItem.innerHTML = `
@@ -344,7 +413,7 @@
                 subject: document.getElementById('subject-name').value.trim(),
                 professor: document.getElementById('professor-name').value.trim(),
                 addedBy: localStorage.getItem('userName') || 'Anonymous',
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                createdAt: firebase.firestore.FieldValue.serverTimestamp() // For activity feed
             };
             if (!newClass.subject || !newClass.startTime || !newClass.endTime) { alert('Please fill in required fields.'); return; }
             classesCollection.add(newClass)
@@ -360,25 +429,9 @@
             document.getElementById('subject-name').value = subject;
             document.getElementById('professor-name').value = professor === 'undefined' ? '' : professor;
 
-            const formButtons = document.getElementById('form-buttons');
-            formButtons.innerHTML = `
-                <button id="add-update-btn" class="bg-green-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-green-700 transition-colors">
-                    <i class="fas fa-save mr-2"></i>Update Class
-                </button>
-                <button id="cancel-edit-btn" type="button" class="bg-gray-500 text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-600 transition-colors">
-                    Cancel
-                </button>`;
-            document.getElementById('add-update-btn').onclick = () => updateClass(id);
-            document.getElementById('cancel-edit-btn').onclick = resetForm;
-        }
-        
-        function resetForm() {
-            document.getElementById('add-class-form').reset();
-            const formButtons = document.getElementById('form-buttons');
-            formButtons.innerHTML = `<button id="add-update-btn" class="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors">
-                    <i class="fas fa-plus mr-2"></i>Add Class
-                </button>`;
-            document.getElementById('add-update-btn').onclick = addClass;
+            const actionButton = document.getElementById('add-update-btn');
+            actionButton.innerHTML = '<i class="fas fa-save mr-2"></i>Update Class';
+            actionButton.onclick = () => updateClass(id);
         }
 
         function updateClass(id) {
@@ -390,11 +443,15 @@
                 location: document.getElementById('class-location').value.trim(),
                 subject: document.getElementById('subject-name').value.trim(),
                 professor: document.getElementById('professor-name').value.trim(),
-                addedBy: localStorage.getItem('userName') || 'Anonymous',
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp() // Add updatedAt timestamp
+                addedBy: localStorage.getItem('userName') || 'Anonymous' // Keep user tag
             };
             classesCollection.doc(id).update(updatedClass)
-                .then(resetForm)
+                .then(() => {
+                    document.getElementById('add-class-form').reset();
+                    const actionButton = document.getElementById('add-update-btn');
+                    actionButton.innerHTML = '<i class="fas fa-plus mr-2"></i>Add Class';
+                    actionButton.onclick = addClass;
+                })
                 .catch(error => console.error("Error updating document: ", error));
         }
 
@@ -419,12 +476,16 @@
         }
         function formatTimeAgo(date) {
             const seconds = Math.floor((new Date() - date) / 1000);
-            if (seconds < 60) return "just now";
-            const intervals = { year: 31536000, month: 2592000, day: 86400, hour: 3600, minute: 60 };
-            for (let unit in intervals) {
-                const interval = Math.floor(seconds / intervals[unit]);
-                if (interval >= 1) return interval + " " + unit + (interval > 1 ? "s" : "") + " ago";
-            }
+            let interval = seconds / 31536000;
+            if (interval > 1) return Math.floor(interval) + " years ago";
+            interval = seconds / 2592000;
+            if (interval > 1) return Math.floor(interval) + " months ago";
+            interval = seconds / 86400;
+            if (interval > 1) return Math.floor(interval) + " days ago";
+            interval = seconds / 3600;
+            if (interval > 1) return Math.floor(interval) + " hours ago";
+            interval = seconds / 60;
+            if (interval > 1) return Math.floor(interval) + " minutes ago";
             return "just now";
         }
     </script>
