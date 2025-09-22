@@ -85,6 +85,22 @@
             outline: 2px solid #3b82f6 !important;
             outline-offset: 2px !important;
         }
+        
+        /* Collapsible class list styles */
+        .class-list-collapsed {
+            max-height: 0 !important;
+            margin-bottom: 0 !important;
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
+        }
+        
+        .class-list-expanded {
+            max-height: 1000px !important;
+        }
+        
+        .chevron-rotated {
+            transform: rotate(180deg);
+        }
     </style>
 </head>
 <body class="min-h-screen">
@@ -209,8 +225,11 @@
                     </table>
                 </div>
                 <div class="mt-6 card bg-white rounded-xl p-6">
-                    <h3 class="text-lg font-semibold mb-4 text-gray-800"><i class="fas fa-list mr-2"></i>Full Class List</h3>
-                    <div id="class-list" class="space-y-3"></div>
+                    <button id="class-list-toggle" class="w-full flex items-center justify-between text-lg font-semibold mb-4 text-gray-800 hover:text-blue-600 transition-colors" onclick="toggleClassList()">
+                        <span><i class="fas fa-list mr-2"></i>Full Class List</span>
+                        <i id="class-list-chevron" class="fas fa-chevron-down transition-transform"></i>
+                    </button>
+                    <div id="class-list" class="space-y-3 transition-all duration-300 overflow-hidden"></div>
                 </div>
             </div>
 
@@ -227,9 +246,9 @@
                         <h2 class="text-xl font-semibold mb-4 text-green-800"><i class="fas fa-sign-in-alt mr-2"></i>Join or Create a Group</h2>
                         <div class="mb-4">
                             <label for="group-code" class="block text-sm font-medium text-gray-700 mb-1">Group Code</label>
-                            <div class="flex">
-                                <input type="text" id="group-code" class="flex-1 p-3 border border-gray-300 rounded-l-lg" placeholder="e.g., KYAKAROGE">
-                                <button onclick="joinGroup()" class="bg-green-600 text-white px-5 py-3 rounded-r-lg hover:bg-green-700 font-medium">Join</button>
+                            <div class="flex flex-col sm:flex-row gap-2 sm:gap-0">
+                                <input type="text" id="group-code" class="flex-1 p-3 border border-gray-300 rounded-lg sm:rounded-l-lg sm:rounded-r-none" placeholder="e.g., KYAKAROGE">
+                                <button onclick="joinGroup()" class="bg-green-600 text-white px-5 py-3 rounded-lg sm:rounded-l-none sm:rounded-r-lg hover:bg-green-700 font-medium whitespace-nowrap">Join</button>
                             </div>
                         </div>
                     </div>
@@ -321,6 +340,12 @@
             initializeTheme();
             document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
             
+            // Initialize class list as collapsed by default
+            const classList = document.getElementById('class-list');
+            const chevron = document.getElementById('class-list-chevron');
+            classList.classList.add('class-list-collapsed');
+            chevron.classList.remove('chevron-rotated');
+            
             document.getElementById('user-name').value = localStorage.getItem('userName') || '';
             const savedGroupCode = localStorage.getItem('groupCode');
             if (savedGroupCode) {
@@ -331,9 +356,16 @@
             }
             document.getElementById('add-update-btn').onclick = addClass;
             
-            // Initialize clock
+            // Initialize clock and status checking
             updateClock();
-            setInterval(updateClock, 1000); // Update every second
+            setInterval(updateClock, 1000); // Update clock every second
+            
+            // Check class status every minute
+            setInterval(() => {
+                if (typeof window.currentSchedule !== 'undefined' && window.currentSchedule.length > 0) {
+                    checkClassStatus(window.currentSchedule);
+                }
+            }, 60000); // Check status every minute
         });
         
         // --- Clock Functions ---
@@ -355,6 +387,145 @@
             // Update DOM
             document.getElementById('current-time').textContent = timeString;
             document.getElementById('current-date').textContent = dateString;
+        }
+        
+        // --- Real-time Class Status Detection ---
+        function checkClassStatus(schedule) {
+            if (!schedule.length) return;
+            
+            const now = new Date();
+            const currentTime = now.getHours() * 60 + now.getMinutes(); // Convert to minutes
+            const currentDay = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][now.getDay()];
+            
+            // Get all unique members
+            const members = [...new Set(schedule.map(cls => cls.addedBy || 'Unknown'))];
+            
+            // Check status for each member
+            members.forEach(member => {
+                const memberClassesToday = schedule.filter(cls => 
+                    cls.addedBy === member && cls.day === currentDay
+                );
+                
+                if (memberClassesToday.length === 0) return;
+                
+                // Sort classes by start time
+                memberClassesToday.sort((a, b) => {
+                    const aTime = parseTimeToMinutes(a.startTime);
+                    const bTime = parseTimeToMinutes(b.startTime);
+                    return aTime - bTime;
+                });
+                
+                // Check for classes starting soon (5 minutes before)
+                memberClassesToday.forEach(cls => {
+                    const startTime = parseTimeToMinutes(cls.startTime);
+                    const endTime = parseTimeToMinutes(cls.endTime);
+                    
+                    // Class starting in 5 minutes
+                    if (currentTime >= startTime - 5 && currentTime < startTime) {
+                        addActivityMessage(`${member} will be going to ${cls.location || 'class'} for ${cls.subject} at ${formatTime(cls.startTime)}`);
+                    }
+                    
+                    // Class ending now (within 2 minutes of end time)
+                    if (currentTime >= endTime - 2 && currentTime <= endTime) {
+                        // Add general class end message
+                        addActivityMessage(`${member} finished ${cls.subject} at ${cls.location || 'class'}`);
+                        
+                        // Check if this is the last class of the day
+                        const isLastClass = memberClassesToday.every(c => {
+                            const cEndTime = parseTimeToMinutes(c.endTime);
+                            return cEndTime <= endTime;
+                        });
+                        
+                        if (isLastClass) {
+                            addActivityMessage(`${member} is returning to hostel`);
+                        }
+                    }
+                });
+            });
+        }
+        
+        function parseTimeToMinutes(timeString) {
+            if (!timeString) return 0;
+            const [hours, minutes] = timeString.split(':').map(Number);
+            return hours * 60 + minutes;
+        }
+        
+        function addActivityMessage(message) {
+            // Don't add duplicate messages
+            const activityList = document.getElementById('recent-activity-list');
+            const existingMessages = Array.from(activityList.children).map(child => child.textContent);
+            if (existingMessages.some(existing => existing.includes(message))) return;
+            
+            const activityDiv = document.createElement('div');
+            activityDiv.className = 'notification bg-green-50 p-4 rounded-lg border-l-4 border-green-500';
+            
+            const activityText = document.createElement('p');
+            activityText.className = 'text-sm text-gray-900';
+            activityText.textContent = message;
+            
+            const timeElement = document.createElement('p');
+            timeElement.className = 'text-xs text-gray-500 mt-1';
+            timeElement.textContent = 'just now';
+            
+            activityDiv.appendChild(activityText);
+            activityDiv.appendChild(timeElement);
+            
+            // Add to top of list
+            if (activityList.firstChild && !activityList.firstChild.textContent.includes('Join a group')) {
+                activityList.insertBefore(activityDiv, activityList.firstChild);
+            } else {
+                activityList.appendChild(activityDiv);
+            }
+        }
+        
+        function getMemberCurrentStatus(schedule, memberName) {
+            if (!memberName) return '';
+            
+            const now = new Date();
+            const currentTime = now.getHours() * 60 + now.getMinutes();
+            const currentDay = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][now.getDay()];
+            
+            const memberClassesToday = schedule.filter(cls => 
+                cls.addedBy === memberName && cls.day === currentDay
+            );
+            
+            if (memberClassesToday.length === 0) return 'Hostel';
+            
+            // Check if member is currently in class
+            const currentClass = memberClassesToday.find(cls => {
+                const startTime = parseTimeToMinutes(cls.startTime);
+                const endTime = parseTimeToMinutes(cls.endTime);
+                return currentTime >= startTime && currentTime <= endTime;
+            });
+            
+            if (currentClass) return currentClass.location || 'In Class';
+            
+            // Check if all classes for today are done
+            const lastClassEndTime = Math.max(...memberClassesToday.map(cls => parseTimeToMinutes(cls.endTime)));
+            if (currentTime > lastClassEndTime) return 'Hostel';
+            
+            return '';
+        }
+        
+        function getUserCurrentStatus(schedule) {
+            const currentUser = localStorage.getItem('userName');
+            return getMemberCurrentStatus(schedule, currentUser);
+        }
+        
+        // --- UI Toggle Functions ---
+        function toggleClassList() {
+            const classList = document.getElementById('class-list');
+            const chevron = document.getElementById('class-list-chevron');
+            
+            if (classList.classList.contains('class-list-collapsed')) {
+                classList.classList.remove('class-list-collapsed');
+                classList.classList.add('class-list-expanded');
+                chevron.classList.add('chevron-rotated');
+            } else {
+                classList.classList.add('class-list-collapsed');
+                classList.classList.remove('class-list-expanded');
+                chevron.classList.remove('chevron-rotated');
+            }
         }
 
         // --- Group Management ---
@@ -387,15 +558,17 @@
             if (unsubscribe) unsubscribe();
             
             unsubscribe = classesCollection.onSnapshot(snapshot => {
-                const schedule = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                window.currentSchedule = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 // Update all parts of the UI that depend on schedule data
-                updateClassList(schedule);
-                updateScheduleTable(schedule);
-                updateTrackerTab(schedule);
+                updateClassList(window.currentSchedule);
+                updateScheduleTable(window.currentSchedule);
+                updateTrackerTab(window.currentSchedule);
+                // Check class status immediately when data changes
+                checkClassStatus(window.currentSchedule);
                 
                 // Update group status to show successful connection
                 const groupCode = localStorage.getItem('groupCode');
-                showGroupStatus(`Connected to group: ${groupCode} (${snapshot.docs.length} classes)`, 'green');
+                showGroupStatus(`Connected to group: ${groupCode}`, 'green');
             }, error => {
                 console.error("Error listening to group changes: ", error);
                 const errorMsg = error.code === 'unavailable' 
@@ -442,7 +615,11 @@
             } else {
                 members.forEach(name => {
                     const memberDiv = document.createElement('div');
-                    memberDiv.className = 'flex items-center p-3 bg-gray-50 rounded-lg';
+                    memberDiv.className = 'flex items-center justify-between p-3 bg-gray-50 rounded-lg';
+                    
+                    // Create left side with avatar and name
+                    const leftDiv = document.createElement('div');
+                    leftDiv.className = 'flex items-center';
                     
                     // Create avatar element safely
                     const avatarDiv = document.createElement('div');
@@ -454,15 +631,32 @@
                     nameDiv.className = 'ml-3 font-medium text-gray-900';
                     nameDiv.textContent = name;
                     
-                    memberDiv.appendChild(avatarDiv);
-                    memberDiv.appendChild(nameDiv);
+                    leftDiv.appendChild(avatarDiv);
+                    leftDiv.appendChild(nameDiv);
+                    
+                    // Get member status and create status tag
+                    const status = getMemberCurrentStatus(schedule, name);
+                    
+                    if (status) {
+                        const statusTag = document.createElement('span');
+                        statusTag.className = status === 'Hostel' 
+                            ? 'px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full font-medium'
+                            : 'px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full font-medium';
+                        statusTag.textContent = status;
+                        
+                        memberDiv.appendChild(leftDiv);
+                        memberDiv.appendChild(statusTag);
+                    } else {
+                        memberDiv.appendChild(leftDiv);
+                    }
+                    
                     membersList.appendChild(memberDiv);
                 });
             }
 
             // Update Recent Activity
             const sortedSchedule = schedule.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
-            const recentActivity = sortedSchedule.slice(0, 5); // Get latest 5 activities
+            const recentActivity = sortedSchedule.slice(0, 10); // Get latest 10 activities (extended)
             if (recentActivity.length === 0) {
                  activityList.innerHTML = '<p class="text-gray-500">Join a group to see the latest activity.</p>';
             } else {
@@ -505,7 +699,16 @@
                 classList.innerHTML = '<p class="text-gray-500 text-center">No classes in this group yet. Add one from the form above!</p>';
                 return;
             }
-            schedule.forEach(cls => {
+            
+            // Sort classes: user's classes first, then others
+            const currentUser = localStorage.getItem('userName');
+            const sortedSchedule = schedule.sort((a, b) => {
+                if (a.addedBy === currentUser && b.addedBy !== currentUser) return -1;
+                if (a.addedBy !== currentUser && b.addedBy === currentUser) return 1;
+                return 0; // Keep original order for same category
+            });
+            
+            sortedSchedule.forEach(cls => {
                 const classItem = document.createElement('div');
                 classItem.className = 'bg-gray-50 p-4 rounded-lg flex justify-between items-center';
                 
@@ -603,7 +806,7 @@
                             
                             // Create addedBy element safely
                             const addedByDiv = document.createElement('div');
-                            addedByDiv.className = 'text-xs text-blue-700 hidden md:block';
+                            addedByDiv.className = 'text-xs text-blue-700';
                             addedByDiv.textContent = cls.addedBy;
                             
                             classDiv.appendChild(subjectDiv);
