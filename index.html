@@ -9,8 +9,11 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
         body { font-family: 'Poppins', sans-serif; background-color: #f8fafc; color: #334155; }
+        .card { transition: transform 0.3s, box-shadow 0.3s; }
         .card:hover { transform: translateY(-5px); box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1); }
         .tab-btn.active { border-bottom: 3px solid #3b82f6; }
+        .notification { animation: fadeIn 0.5s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         #group-status { transition: opacity 0.3s ease; }
     </style>
 </head>
@@ -18,50 +21,54 @@
     <div class="max-w-6xl mx-auto px-4 py-8">
         <header class="text-center mb-8">
             <h1 class="text-4xl font-bold text-blue-600 mb-3"><i class="fas fa-users mr-2"></i>Campus Connect</h1>
-            <p class="text-gray-600 text-lg">Join a group and coordinate schedules with your friends in real-time.</p>
+            <p class="text-gray-600 text-lg">Track your friends' schedules and coordinate movements around campus</p>
         </header>
 
         <div class="bg-white rounded-xl shadow-lg overflow-hidden">
             <div class="flex border-b">
+                <button class="tab-btn flex-1 py-4 font-medium text-center text-blue-600 active" data-tab="tracker">
+                    <i class="fas fa-map-marker-alt mr-2"></i>Tracker
+                </button>
+                <button class="tab-btn flex-1 py-4 font-medium text-center text-gray-500" data-tab="timetable">
+                    <i class="fas fa-calendar-alt mr-2"></i>Timetable
+                </button>
                 <button class="tab-btn flex-1 py-4 font-medium text-center text-gray-500" data-tab="group">
                     <i class="fas fa-user-friends mr-2"></i>Group
                 </button>
-                <button class="tab-btn flex-1 py-4 font-medium text-center text-blue-600 active" data-tab="timetable">
-                    <i class="fas fa-calendar-alt mr-2"></i>Timetable
-                </button>
             </div>
 
-            <div id="group-tab" class="tab-content p-6">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="card bg-blue-50 rounded-xl p-6">
-                        <h2 class="text-xl font-semibold mb-4 text-blue-800"><i class="fas fa-user-circle mr-2"></i>Your Info</h2>
-                        <div class="mb-4">
-                            <label for="user-name" class="block text-sm font-medium text-gray-700 mb-1">Your Name</label>
-                            <input type="text" id="user-name" class="w-full p-3 border border-gray-300 rounded-lg" placeholder="Enter your name">
+            <div id="tracker-tab" class="tab-content p-6">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-2">
+                        <div class="card bg-white border border-gray-200 rounded-xl p-6">
+                            <h2 class="text-xl font-semibold mb-4 text-gray-800"><i class="fas fa-bell mr-2"></i>Recent Group Activity</h2>
+                            <div id="recent-activity-feed" class="space-y-4">
+                                <p class="text-gray-500">Join a group to see the latest activity...</p>
+                            </div>
                         </div>
                     </div>
-                    <div class="card bg-green-50 rounded-xl p-6">
-                        <h2 class="text-xl font-semibold mb-4 text-green-800"><i class="fas fa-sign-in-alt mr-2"></i>Join or Create a Group</h2>
-                        <div class="mb-4">
-                            <label for="group-code" class="block text-sm font-medium text-gray-700 mb-1">Group Code</label>
-                            <div class="flex">
-                                <input type="text" id="group-code" class="flex-1 p-3 border border-gray-300 rounded-l-lg" placeholder="e.g., CAMPUS2024">
-                                <button onclick="joinGroup()" class="bg-green-600 text-white px-5 py-3 rounded-r-lg hover:bg-green-700 font-medium">Join</button>
+                    <div class="space-y-6">
+                        <div class="card bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl p-6 text-center text-white">
+                            <h2 class="text-xl font-semibold mb-2">Current Time</h2>
+                            <div id="current-time-display" class="text-4xl font-bold mb-1">...</div>
+                            <div id="current-date-display" class="opacity-90">...</div>
+                        </div>
+                        <div class="card bg-white border border-gray-200 rounded-xl p-6">
+                            <h2 class="text-xl font-semibold mb-4 text-gray-800"><i class="fas fa-user-friends mr-2"></i>Group Members</h2>
+                            <div id="group-members-list" class="space-y-3">
+                                <p class="text-gray-500">Members will appear here...</p>
                             </div>
                         </div>
                     </div>
                 </div>
-                <div id="group-status" class="text-center mt-6 p-4 rounded-lg bg-gray-100 text-gray-700 font-medium opacity-0">
-                    Connecting to group...
-                </div>
             </div>
-            
+
             <div id="timetable-tab" class="tab-content hidden p-6">
                 <div class="mb-6">
                     <h2 class="text-xl font-semibold mb-4 text-gray-800"><i class="fas fa-calendar-plus mr-2"></i>Add / Edit Class</h2>
                     <div class="card bg-blue-50 rounded-xl p-6">
                         <form id="add-class-form" onsubmit="event.preventDefault();">
-                             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-1">Day</label>
                                     <select class="w-full p-3 border border-gray-300 rounded-lg" id="class-day">
@@ -122,8 +129,33 @@
                 </div>
 
                 <div class="mt-6 card bg-white rounded-xl p-6">
-                    <h3 class="text-lg font-semibold mb-4 text-gray-800"><i class="fas fa-list mr-2"></i>Class List</h3>
+                    <h3 class="text-lg font-semibold mb-4 text-gray-800"><i class="fas fa-list mr-2"></i>Full Class List</h3>
                     <div id="class-list" class="space-y-3"></div>
+                </div>
+            </div>
+            
+            <div id="group-tab" class="tab-content hidden p-6">
+                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="card bg-blue-50 rounded-xl p-6">
+                        <h2 class="text-xl font-semibold mb-4 text-blue-800"><i class="fas fa-user-circle mr-2"></i>Your Info</h2>
+                        <div class="mb-4">
+                            <label for="user-name" class="block text-sm font-medium text-gray-700 mb-1">Your Name</label>
+                            <input type="text" id="user-name" class="w-full p-3 border border-gray-300 rounded-lg" placeholder="Enter your name to tag your classes">
+                        </div>
+                    </div>
+                    <div class="card bg-green-50 rounded-xl p-6">
+                        <h2 class="text-xl font-semibold mb-4 text-green-800"><i class="fas fa-sign-in-alt mr-2"></i>Join or Create a Group</h2>
+                        <div class="mb-4">
+                            <label for="group-code" class="block text-sm font-medium text-gray-700 mb-1">Group Code</label>
+                            <div class="flex">
+                                <input type="text" id="group-code" class="flex-1 p-3 border border-gray-300 rounded-l-lg" placeholder="e.g., CAMPUS2024">
+                                <button onclick="joinGroup()" class="bg-green-600 text-white px-5 py-3 rounded-r-lg hover:bg-green-700 font-medium">Join</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="group-status" class="text-center mt-6 p-4 rounded-lg bg-gray-100 text-gray-700 font-medium opacity-0">
+                    Connecting to group...
                 </div>
             </div>
         </div>
@@ -149,20 +181,23 @@
         // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
-        let classesCollection = null; // Will be set when a group is joined
-        let unsubscribe = null; // To stop listening to old group changes
+        let classesCollection = null;
+        let unsubscribe = null;
 
         // --- App Initialization ---
         document.addEventListener('DOMContentLoaded', () => {
-            // Load user name and group code from localStorage
+            updateTime();
+            setInterval(updateTime, 60000);
+            
             document.getElementById('user-name').value = localStorage.getItem('userName') || '';
             const savedGroupCode = localStorage.getItem('groupCode');
             if (savedGroupCode) {
                 document.getElementById('group-code').value = savedGroupCode;
                 joinGroup();
             } else {
-                showGroupStatus('Enter a group code to begin.', 'blue');
+                showGroupStatus('Enter your name and a group code to begin!', 'blue');
             }
+            document.getElementById('add-update-btn').onclick = addClass;
         });
 
         // --- Group Management ---
@@ -170,73 +205,105 @@
             const userName = document.getElementById('user-name').value.trim();
             const groupCode = document.getElementById('group-code').value.trim();
 
-            if (!userName) {
-                alert('Please enter your name first!');
-                return;
-            }
-            if (!groupCode) {
-                alert('Please enter a group code!');
-                return;
-            }
+            if (!userName) { alert('Please enter your name first!'); return; }
+            if (!groupCode) { alert('Please enter a group code!'); return; }
 
-            // Save user info
             localStorage.setItem('userName', userName);
             localStorage.setItem('groupCode', groupCode);
 
-            // Set the collection reference
             classesCollection = db.collection('groups').doc(groupCode).collection('classes');
-            
-            // Listen to changes in the new group
             listenToGroupChanges();
-            showGroupStatus(`You are now connected to group: ${groupCode}`, 'green');
-            switchTab('timetable'); // Switch to timetable view after joining
+            showGroupStatus(`Connected to group: ${groupCode}`, 'green');
         }
         
         function listenToGroupChanges() {
-            // If we are already listening to a group, stop it first
-            if (unsubscribe) {
-                unsubscribe();
-            }
-            // Start listening to the new collection
-            unsubscribe = classesCollection.orderBy("startTime").onSnapshot(snapshot => {
+            if (unsubscribe) { unsubscribe(); }
+            
+            unsubscribe = classesCollection.onSnapshot(snapshot => {
                 const schedule = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                // Update all parts of the UI that depend on schedule data
                 updateClassList(schedule);
                 updateScheduleTable(schedule);
+                updateTrackerTab(schedule);
             }, error => {
                 console.error("Error listening to group changes: ", error);
-                showGroupStatus(`Error connecting to group. Check console for details.`, 'red');
+                showGroupStatus(`Error connecting to group.`, 'red');
             });
         }
         
         function showGroupStatus(message, color) {
             const statusDiv = document.getElementById('group-status');
             statusDiv.textContent = message;
-            statusDiv.classList.remove('bg-gray-100', 'bg-green-100', 'bg-red-100', 'text-gray-700', 'text-green-800', 'text-red-800');
-            if (color === 'green') {
-                statusDiv.classList.add('bg-green-100', 'text-green-800');
-            } else if (color === 'red') {
-                statusDiv.classList.add('bg-red-100', 'text-red-800');
-            } else {
-                 statusDiv.classList.add('bg-gray-100', 'text-gray-700');
-            }
+            statusDiv.className = 'text-center mt-6 p-4 rounded-lg font-medium'; // Reset classes
+            if (color === 'green') statusDiv.classList.add('bg-green-100', 'text-green-800');
+            else if (color === 'red') statusDiv.classList.add('bg-red-100', 'text-red-800');
+            else statusDiv.classList.add('bg-gray-100', 'text-gray-700');
             statusDiv.style.opacity = '1';
         }
 
         // --- Tab and UI Functions ---
-        function switchTab(tabName) {
-            document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.classList.remove('active', 'text-blue-600');
-                btn.classList.add('text-gray-500');
-            });
-            document.querySelector(`.tab-btn[data-tab="${tabName}"]`).classList.add('active', 'text-blue-600');
-            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
-            document.getElementById(tabName + '-tab').classList.remove('hidden');
-        }
         document.querySelectorAll('.tab-btn').forEach(button => {
-            button.addEventListener('click', () => switchTab(button.getAttribute('data-tab')));
+            button.addEventListener('click', () => {
+                const tabName = button.getAttribute('data-tab');
+                document.querySelectorAll('.tab-btn').forEach(btn => {
+                    btn.classList.remove('active', 'text-blue-600');
+                    btn.classList.add('text-gray-500');
+                });
+                button.classList.add('active', 'text-blue-600');
+                document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
+                document.getElementById(tabName + '-tab').classList.remove('hidden');
+            });
         });
 
+        function updateTime() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const dateString = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            document.getElementById('current-time-display').textContent = timeString;
+            document.getElementById('current-date-display').textContent = dateString;
+        }
+
         // --- UI Update Functions ---
+        function updateTrackerTab(schedule) {
+            const activityFeed = document.getElementById('recent-activity-feed');
+            const membersList = document.getElementById('group-members-list');
+            activityFeed.innerHTML = '';
+            membersList.innerHTML = '';
+
+            if (schedule.length === 0) {
+                activityFeed.innerHTML = '<p class="text-gray-500">No activity yet. Add a class to the timetable!</p>';
+                membersList.innerHTML = '<p class="text-gray-500">No members found.</p>';
+                return;
+            }
+
+            // Update Recent Activity
+            const sortedSchedule = [...schedule].sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
+            sortedSchedule.slice(0, 5).forEach(cls => {
+                const item = document.createElement('div');
+                item.className = 'notification bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500';
+                item.innerHTML = `
+                    <p class="text-sm text-gray-900"><b>${cls.addedBy || 'Someone'}</b> added <b>${cls.subject}</b> on ${cls.day}.</p>
+                    <p class="text-xs text-gray-500 mt-1">${cls.location || 'No location'} • ${formatTime(cls.startTime)} - ${formatTime(cls.endTime)}</p>`;
+                activityFeed.appendChild(item);
+            });
+
+            // Update Group Members
+            const uniqueMembers = [...new Set(schedule.map(cls => cls.addedBy).filter(Boolean))];
+            if (uniqueMembers.length === 0) {
+                 membersList.innerHTML = '<p class="text-gray-500">No members found.</p>';
+            } else {
+                uniqueMembers.forEach(name => {
+                    const item = document.createElement('div');
+                    item.className = 'flex items-center p-2 bg-gray-50 rounded-lg';
+                    const initial = name.charAt(0).toUpperCase();
+                    item.innerHTML = `
+                        <div class="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">${initial}</div>
+                        <div class="ml-3 font-medium text-gray-900">${name}</div>`;
+                    membersList.appendChild(item);
+                });
+            }
+        }
+        
         function updateClassList(schedule) {
             const classList = document.getElementById('class-list');
             classList.innerHTML = '';
@@ -254,7 +321,7 @@
                         <div class="text-xs text-gray-500">Professor: ${cls.professor || 'N/A'}</div>
                     </div>
                     <div class="flex gap-2">
-                         <button class="text-blue-600 hover:text-blue-800" onclick="editClass('${cls.id}', \`${cls.day}\`, \`${cls.startTime}\`, \`${cls.endTime}\`, \`${cls.location}\`, \`${cls.subject}\`, \`${cls.professor}\`)">
+                        <button class="text-blue-600 hover:text-blue-800" onclick="editClass('${cls.id}', \`${cls.day}\`, \`${cls.startTime}\`, \`${cls.endTime}\`, \`${cls.location}\`, \`${cls.subject}\`, \`${cls.professor}\`)">
                             <i class="fas fa-edit"></i>
                         </button>
                         <button class="text-red-600 hover:text-red-800" onclick="deleteClass('${cls.id}')">
@@ -290,10 +357,8 @@
 
         // --- Firestore CRUD Functions ---
         function addClass() {
-            if (!classesCollection) {
-                alert("Please join a group before adding a class.");
-                return;
-            }
+            if (!classesCollection) { alert("Please join a group before adding a class."); return; }
+            
             const newClass = {
                 day: document.getElementById('class-day').value,
                 startTime: document.getElementById('start-time').value,
@@ -301,9 +366,11 @@
                 location: document.getElementById('class-location').value.trim(),
                 subject: document.getElementById('subject-name').value.trim(),
                 professor: document.getElementById('professor-name').value.trim(),
-                addedBy: localStorage.getItem('userName') || 'Anonymous' // Tag with user's name
+                addedBy: localStorage.getItem('userName') || 'Anonymous',
+                createdAt: firebase.firestore.FieldValue.serverTimestamp() // For sorting activity
             };
-            if (!newClass.subject || !newClass.startTime || !newClass.endTime) {
+
+            if (!newClass.subject || !newClass.startTime || !new-class.endTime) {
                 alert('Please fill in Subject, Start Time, and End Time.');
                 return;
             }
@@ -334,7 +401,7 @@
                 location: document.getElementById('class-location').value.trim(),
                 subject: document.getElementById('subject-name').value.trim(),
                 professor: document.getElementById('professor-name').value.trim(),
-                addedBy: localStorage.getItem('userName') || 'Anonymous' // Re-tag with user's name
+                addedBy: localStorage.getItem('userName') || 'Anonymous'
             };
             classesCollection.doc(id).update(updatedClass)
                 .then(() => {
