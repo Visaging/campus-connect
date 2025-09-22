@@ -429,20 +429,33 @@
                 const actionsDiv = document.createElement('div');
                 actionsDiv.className = 'flex gap-2';
                 
-                // Create edit button safely
-                const editButton = document.createElement('button');
-                editButton.className = 'text-blue-600 hover:text-blue-800';
-                editButton.innerHTML = '<i class="fas fa-edit"></i>';
-                editButton.onclick = () => editClass(cls.id, cls.day, cls.startTime, cls.endTime, cls.location, cls.subject, cls.professor);
+                // Get current user name
+                const currentUser = localStorage.getItem('userName');
                 
-                // Create delete button safely
-                const deleteButton = document.createElement('button');
-                deleteButton.className = 'text-red-600 hover:text-red-800';
-                deleteButton.innerHTML = '<i class="fas fa-trash"></i>';
-                deleteButton.onclick = () => deleteClass(cls.id);
-                
-                actionsDiv.appendChild(editButton);
-                actionsDiv.appendChild(deleteButton);
+                // Only show edit/delete buttons if current user added this class
+                if (currentUser && cls.addedBy === currentUser) {
+                    // Create edit button safely
+                    const editButton = document.createElement('button');
+                    editButton.className = 'text-blue-600 hover:text-blue-800';
+                    editButton.innerHTML = '<i class="fas fa-edit"></i>';
+                    editButton.onclick = () => editClass(cls.id, cls.day, cls.startTime, cls.endTime, cls.location, cls.subject, cls.professor);
+                    
+                    // Create delete button safely
+                    const deleteButton = document.createElement('button');
+                    deleteButton.className = 'text-red-600 hover:text-red-800';
+                    deleteButton.innerHTML = '<i class="fas fa-trash"></i>';
+                    deleteButton.onclick = () => deleteClass(cls.id);
+                    
+                    actionsDiv.appendChild(editButton);
+                    actionsDiv.appendChild(deleteButton);
+                } else {
+                    // Show a disabled placeholder or message for classes added by others
+                    const noActionDiv = document.createElement('div');
+                    noActionDiv.className = 'text-gray-400 text-sm';
+                    noActionDiv.innerHTML = '<i class="fas fa-lock text-xs"></i>';
+                    noActionDiv.title = 'Only the person who added this class can edit it';
+                    actionsDiv.appendChild(noActionDiv);
+                }
                 
                 classItem.appendChild(contentDiv);
                 classItem.appendChild(actionsDiv);
