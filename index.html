@@ -14,7 +14,6 @@
         .tab-btn.active { border-bottom: 3px solid #3b82f6; }
         .notification { animation: fadeIn 0.5s ease-in; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        #group-status { transition: opacity 0.3s ease; }
     </style>
 </head>
 <body class="min-h-screen">
@@ -42,33 +41,28 @@
                     <div class="lg:col-span-2">
                         <div class="card bg-white border border-gray-200 rounded-xl p-6">
                             <h2 class="text-xl font-semibold mb-4 text-gray-800"><i class="fas fa-bell mr-2"></i>Recent Group Activity</h2>
-                            <div id="recent-activity-feed" class="space-y-4">
-                                <p class="text-gray-500">Join a group to see the latest activity...</p>
+                            <div id="recent-activity-list" class="space-y-4">
+                                <p class="text-gray-500">Join a group to see the latest activity.</p>
                             </div>
                         </div>
                     </div>
-                    <div class="space-y-6">
-                        <div class="card bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl p-6 text-center text-white">
-                            <h2 class="text-xl font-semibold mb-2">Current Time</h2>
-                            <div id="current-time-display" class="text-4xl font-bold mb-1">...</div>
-                            <div id="current-date-display" class="opacity-90">...</div>
-                        </div>
+                    <div class="lg:col-span-1">
                         <div class="card bg-white border border-gray-200 rounded-xl p-6">
                             <h2 class="text-xl font-semibold mb-4 text-gray-800"><i class="fas fa-user-friends mr-2"></i>Group Members</h2>
                             <div id="group-members-list" class="space-y-3">
-                                <p class="text-gray-500">Members will appear here...</p>
+                                <p class="text-gray-500">Members will appear here as they add classes.</p>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-
+            
             <div id="timetable-tab" class="tab-content hidden p-6">
                 <div class="mb-6">
                     <h2 class="text-xl font-semibold mb-4 text-gray-800"><i class="fas fa-calendar-plus mr-2"></i>Add / Edit Class</h2>
                     <div class="card bg-blue-50 rounded-xl p-6">
                         <form id="add-class-form" onsubmit="event.preventDefault();">
-                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-1">Day</label>
                                     <select class="w-full p-3 border border-gray-300 rounded-lg" id="class-day">
@@ -109,7 +103,6 @@
                         </form>
                     </div>
                 </div>
-
                 <h2 class="text-xl font-semibold mb-4 text-gray-800"><i class="fas fa-calendar-check mr-2"></i>Group Weekly Schedule</h2>
                 <div class="overflow-x-auto">
                     <table class="w-full bg-white rounded-xl shadow-sm">
@@ -127,15 +120,14 @@
                         <tbody id="schedule-table"></tbody>
                     </table>
                 </div>
-
                 <div class="mt-6 card bg-white rounded-xl p-6">
                     <h3 class="text-lg font-semibold mb-4 text-gray-800"><i class="fas fa-list mr-2"></i>Full Class List</h3>
                     <div id="class-list" class="space-y-3"></div>
                 </div>
             </div>
-            
+
             <div id="group-tab" class="tab-content hidden p-6">
-                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="card bg-blue-50 rounded-xl p-6">
                         <h2 class="text-xl font-semibold mb-4 text-blue-800"><i class="fas fa-user-circle mr-2"></i>Your Info</h2>
                         <div class="mb-4">
@@ -154,7 +146,7 @@
                         </div>
                     </div>
                 </div>
-                <div id="group-status" class="text-center mt-6 p-4 rounded-lg bg-gray-100 text-gray-700 font-medium opacity-0">
+                <div id="group-status" class="text-center mt-6 p-4 rounded-lg bg-gray-100 text-gray-700 opacity-0 transition-opacity">
                     Connecting to group...
                 </div>
             </div>
@@ -186,16 +178,13 @@
 
         // --- App Initialization ---
         document.addEventListener('DOMContentLoaded', () => {
-            updateTime();
-            setInterval(updateTime, 60000);
-            
             document.getElementById('user-name').value = localStorage.getItem('userName') || '';
             const savedGroupCode = localStorage.getItem('groupCode');
             if (savedGroupCode) {
                 document.getElementById('group-code').value = savedGroupCode;
                 joinGroup();
             } else {
-                showGroupStatus('Enter your name and a group code to begin!', 'blue');
+                showGroupStatus('Enter your name and a group code to begin.', 'blue');
             }
             document.getElementById('add-update-btn').onclick = addClass;
         });
@@ -204,7 +193,6 @@
         function joinGroup() {
             const userName = document.getElementById('user-name').value.trim();
             const groupCode = document.getElementById('group-code').value.trim();
-
             if (!userName) { alert('Please enter your name first!'); return; }
             if (!groupCode) { alert('Please enter a group code!'); return; }
 
@@ -212,12 +200,14 @@
             localStorage.setItem('groupCode', groupCode);
 
             classesCollection = db.collection('groups').doc(groupCode).collection('classes');
+            
             listenToGroupChanges();
-            showGroupStatus(`Connected to group: ${groupCode}`, 'green');
+            showGroupStatus(`You are connected to group: ${groupCode}`, 'green');
+            switchTab('tracker');
         }
         
         function listenToGroupChanges() {
-            if (unsubscribe) { unsubscribe(); }
+            if (unsubscribe) unsubscribe();
             
             unsubscribe = classesCollection.onSnapshot(snapshot => {
                 const schedule = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -227,79 +217,65 @@
                 updateTrackerTab(schedule);
             }, error => {
                 console.error("Error listening to group changes: ", error);
-                showGroupStatus(`Error connecting to group.`, 'red');
+                showGroupStatus(`Error connecting to group. Check console for details.`, 'red');
             });
         }
         
         function showGroupStatus(message, color) {
             const statusDiv = document.getElementById('group-status');
             statusDiv.textContent = message;
-            statusDiv.className = 'text-center mt-6 p-4 rounded-lg font-medium'; // Reset classes
+            statusDiv.className = 'text-center mt-6 p-4 rounded-lg font-medium opacity-100 transition-opacity'; // Reset classes
             if (color === 'green') statusDiv.classList.add('bg-green-100', 'text-green-800');
             else if (color === 'red') statusDiv.classList.add('bg-red-100', 'text-red-800');
             else statusDiv.classList.add('bg-gray-100', 'text-gray-700');
-            statusDiv.style.opacity = '1';
         }
 
         // --- Tab and UI Functions ---
-        document.querySelectorAll('.tab-btn').forEach(button => {
-            button.addEventListener('click', () => {
-                const tabName = button.getAttribute('data-tab');
-                document.querySelectorAll('.tab-btn').forEach(btn => {
-                    btn.classList.remove('active', 'text-blue-600');
-                    btn.classList.add('text-gray-500');
-                });
-                button.classList.add('active', 'text-blue-600');
-                document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
-                document.getElementById(tabName + '-tab').classList.remove('hidden');
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active', 'text-blue-600');
+                btn.classList.add('text-gray-500');
             });
-        });
-
-        function updateTime() {
-            const now = new Date();
-            const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            const dateString = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-            document.getElementById('current-time-display').textContent = timeString;
-            document.getElementById('current-date-display').textContent = dateString;
+            document.querySelector(`.tab-btn[data-tab="${tabName}"]`).classList.add('active', 'text-blue-600');
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
+            document.getElementById(tabName + '-tab').classList.remove('hidden');
         }
+        document.querySelectorAll('.tab-btn').forEach(button => {
+            button.addEventListener('click', () => switchTab(button.getAttribute('data-tab')));
+        });
 
         // --- UI Update Functions ---
         function updateTrackerTab(schedule) {
-            const activityFeed = document.getElementById('recent-activity-feed');
             const membersList = document.getElementById('group-members-list');
-            activityFeed.innerHTML = '';
+            const activityList = document.getElementById('recent-activity-list');
             membersList.innerHTML = '';
+            activityList.innerHTML = '';
 
-            if (schedule.length === 0) {
-                activityFeed.innerHTML = '<p class="text-gray-500">No activity yet. Add a class to the timetable!</p>';
-                membersList.innerHTML = '<p class="text-gray-500">No members found.</p>';
-                return;
+            // Update Group Members
+            const members = [...new Set(schedule.map(cls => cls.addedBy || 'Unknown'))];
+            if (members.length === 0) {
+                membersList.innerHTML = '<p class="text-gray-500">Members will appear here as they add classes.</p>';
+            } else {
+                members.forEach(name => {
+                    const memberDiv = document.createElement('div');
+                    memberDiv.className = 'flex items-center p-3 bg-gray-50 rounded-lg';
+                    memberDiv.innerHTML = `<div class="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold">${name.charAt(0).toUpperCase()}</div><div class="ml-3 font-medium text-gray-900">${name}</div>`;
+                    membersList.appendChild(memberDiv);
+                });
             }
 
             // Update Recent Activity
-            const sortedSchedule = [...schedule].sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
-            sortedSchedule.slice(0, 5).forEach(cls => {
-                const item = document.createElement('div');
-                item.className = 'notification bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500';
-                item.innerHTML = `
-                    <p class="text-sm text-gray-900"><b>${cls.addedBy || 'Someone'}</b> added <b>${cls.subject}</b> on ${cls.day}.</p>
-                    <p class="text-xs text-gray-500 mt-1">${cls.location || 'No location'} • ${formatTime(cls.startTime)} - ${formatTime(cls.endTime)}</p>`;
-                activityFeed.appendChild(item);
-            });
-
-            // Update Group Members
-            const uniqueMembers = [...new Set(schedule.map(cls => cls.addedBy).filter(Boolean))];
-            if (uniqueMembers.length === 0) {
-                 membersList.innerHTML = '<p class="text-gray-500">No members found.</p>';
+            const sortedSchedule = schedule.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
+            const recentActivity = sortedSchedule.slice(0, 5); // Get latest 5 activities
+            if (recentActivity.length === 0) {
+                 activityList.innerHTML = '<p class="text-gray-500">Join a group to see the latest activity.</p>';
             } else {
-                uniqueMembers.forEach(name => {
-                    const item = document.createElement('div');
-                    item.className = 'flex items-center p-2 bg-gray-50 rounded-lg';
-                    const initial = name.charAt(0).toUpperCase();
-                    item.innerHTML = `
-                        <div class="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">${initial}</div>
-                        <div class="ml-3 font-medium text-gray-900">${name}</div>`;
-                    membersList.appendChild(item);
+                recentActivity.forEach(cls => {
+                    const activityDiv = document.createElement('div');
+                    activityDiv.className = 'notification bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500';
+                    const timeAgo = cls.createdAt ? formatTimeAgo(cls.createdAt.toDate()) : 'a moment ago';
+                    activityDiv.innerHTML = `<p class="text-sm text-gray-900"><b>${cls.addedBy}</b> added the class <b>${cls.subject}</b>.</p><p class="text-xs text-gray-500 mt-1">${timeAgo}</p>`;
+                    activityList.appendChild(activityDiv);
                 });
             }
         }
@@ -308,7 +284,7 @@
             const classList = document.getElementById('class-list');
             classList.innerHTML = '';
             if (schedule.length === 0) {
-                classList.innerHTML = '<p class="text-gray-500 text-center">No classes in this group yet. Be the first to add one!</p>';
+                classList.innerHTML = '<p class="text-gray-500 text-center">No classes in this group yet. Add one from the form above!</p>';
                 return;
             }
             schedule.forEach(cls => {
@@ -316,17 +292,13 @@
                 classItem.className = 'bg-gray-50 p-4 rounded-lg flex justify-between items-center';
                 classItem.innerHTML = `
                     <div>
-                        <div class="font-medium text-gray-900">${cls.subject} <span class="text-xs font-normal text-gray-500">(Added by ${cls.addedBy || 'Unknown'})</span></div>
+                        <div class="font-medium text-gray-900">${cls.subject} <span class="text-xs font-normal text-gray-500">(by ${cls.addedBy || 'Unknown'})</span></div>
                         <div class="text-sm text-gray-600">${cls.day} • ${formatTime(cls.startTime)}-${formatTime(cls.endTime)} • ${cls.location}</div>
                         <div class="text-xs text-gray-500">Professor: ${cls.professor || 'N/A'}</div>
                     </div>
                     <div class="flex gap-2">
-                        <button class="text-blue-600 hover:text-blue-800" onclick="editClass('${cls.id}', \`${cls.day}\`, \`${cls.startTime}\`, \`${cls.endTime}\`, \`${cls.location}\`, \`${cls.subject}\`, \`${cls.professor}\`)">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="text-red-600 hover:text-red-800" onclick="deleteClass('${cls.id}')">
-                            <i class="fas fa-trash"></i>
-                        </button>
+                        <button class="text-blue-600 hover:text-blue-800" onclick="editClass('${cls.id}', \`${cls.day}\`, \`${cls.startTime}\`, \`${cls.endTime}\`, \`${cls.location}\`, \`${cls.subject}\`, \`${cls.professor}\`)"><i class="fas fa-edit"></i></button>
+                        <button class="text-red-600 hover:text-red-800" onclick="deleteClass('${cls.id}')"><i class="fas fa-trash"></i></button>
                     </div>`;
                 classList.appendChild(classItem);
             });
@@ -344,10 +316,10 @@
                     cell.className = 'p-1 border-t relative';
                     const cellClasses = schedule.filter(cls => cls.day === day && isTimeInSlot(timeSlot, cls.startTime, cls.endTime));
                     if (cellClasses.length > 0) {
-                        cell.innerHTML = `<div class="bg-blue-100 border border-blue-300 rounded-lg p-2 text-center group">
-                            <div class="font-medium text-blue-900 text-sm">${cellClasses[0].subject}</div>
-                            <div class="text-xs text-blue-700 hidden md:block">${cellClasses[0].addedBy}</div>
-                        </div>`;
+                        cell.innerHTML = cellClasses.map(cls => `<div class="bg-blue-100 border border-blue-300 rounded-lg p-2 text-center mb-1">
+                            <div class="font-medium text-blue-900 text-sm">${cls.subject}</div>
+                            <div class="text-xs text-blue-700 hidden md:block">${cls.addedBy}</div>
+                        </div>`).join('');
                     }
                     row.appendChild(cell);
                 });
@@ -358,7 +330,6 @@
         // --- Firestore CRUD Functions ---
         function addClass() {
             if (!classesCollection) { alert("Please join a group before adding a class."); return; }
-            
             const newClass = {
                 day: document.getElementById('class-day').value,
                 startTime: document.getElementById('start-time').value,
@@ -367,13 +338,9 @@
                 subject: document.getElementById('subject-name').value.trim(),
                 professor: document.getElementById('professor-name').value.trim(),
                 addedBy: localStorage.getItem('userName') || 'Anonymous',
-                createdAt: firebase.firestore.FieldValue.serverTimestamp() // For sorting activity
+                createdAt: firebase.firestore.FieldValue.serverTimestamp() // For activity feed
             };
-
-            if (!newClass.subject || !newClass.startTime || !new-class.endTime) {
-                alert('Please fill in Subject, Start Time, and End Time.');
-                return;
-            }
+            if (!newClass.subject || !newClass.startTime || !newClass.endTime) { alert('Please fill in required fields.'); return; }
             classesCollection.add(newClass)
                 .then(() => document.getElementById('add-class-form').reset())
                 .catch(error => console.error("Error adding document: ", error));
@@ -401,7 +368,7 @@
                 location: document.getElementById('class-location').value.trim(),
                 subject: document.getElementById('subject-name').value.trim(),
                 professor: document.getElementById('professor-name').value.trim(),
-                addedBy: localStorage.getItem('userName') || 'Anonymous'
+                addedBy: localStorage.getItem('userName') || 'Anonymous' // Keep user tag
             };
             classesCollection.doc(id).update(updatedClass)
                 .then(() => {
@@ -423,23 +390,28 @@
         // --- Helper Functions ---
         function formatTime(timeString) {
             if (!timeString) return '';
-            const [hours, minutes] = timeString.split(':');
-            const hour = parseInt(hours);
-            const period = hour >= 12 ? 'PM' : 'AM';
-            const formattedHour = hour % 12 || 12;
-            return `${formattedHour}:${minutes} ${period}`;
+            const [h, m] = timeString.split(':');
+            return `${(h % 12 || 12)}:${m} ${h >= 12 ? 'PM' : 'AM'}`;
         }
-        
         function generateTimeSlots() {
-            const slots = [];
-            for (let hour = 8; hour <= 18; hour++) {
-                slots.push(`${hour.toString().padStart(2, '0')}:00`);
-            }
-            return slots;
+            return Array.from({length: 11}, (_, i) => `${(i + 8).toString().padStart(2, '0')}:00`);
         }
-
         function isTimeInSlot(currentTime, startTime, endTime) {
             return currentTime >= startTime && currentTime < endTime;
+        }
+        function formatTimeAgo(date) {
+            const seconds = Math.floor((new Date() - date) / 1000);
+            let interval = seconds / 31536000;
+            if (interval > 1) return Math.floor(interval) + " years ago";
+            interval = seconds / 2592000;
+            if (interval > 1) return Math.floor(interval) + " months ago";
+            interval = seconds / 86400;
+            if (interval > 1) return Math.floor(interval) + " days ago";
+            interval = seconds / 3600;
+            if (interval > 1) return Math.floor(interval) + " hours ago";
+            interval = seconds / 60;
+            if (interval > 1) return Math.floor(interval) + " minutes ago";
+            return "just now";
         }
     </script>
 </body>
