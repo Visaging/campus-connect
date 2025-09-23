@@ -1,1716 +1,2337 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Campus Connect - Friend Timetable Tracker</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>👥</text></svg>">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class'
-        }
-    </script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
-        
-        /* Enable dark mode */
-        @media (prefers-color-scheme: dark) {
-            html:not(.light) { color-scheme: dark; }
-        }
-        html.dark { color-scheme: dark; }
-        
-        body { 
-            font-family: 'Poppins', sans-serif; 
-            background-color: #f8fafc; 
-            color: #334155;
-            transition: background-color 0.3s, color 0.3s;
-        }
-        
-        /* Dark mode styles */
-        body.dark {
-            background-color: #0f172a;
-            color: #e2e8f0;
-        }
-        
-        .card { transition: transform 0.3s, box-shadow 0.3s, background-color 0.3s; }
-        .card:hover { transform: translateY(-5px); box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1); }
-        .dark .card:hover { box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3); }
-        
-        .tab-btn.active { border-bottom: 3px solid #3b82f6; }
-        .notification { animation: fadeIn 0.5s ease-in; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        
-        /* Dark mode specific styles */
-        .dark .bg-white { background-color: #1e293b !important; }
-        .dark .bg-gray-50 { background-color: #334155 !important; }
-        .dark .bg-gray-100 { background-color: #475569 !important; }
-        .dark .bg-gray-200 { background-color: #64748b !important; }
-        .dark .bg-blue-50 { background-color: #1e3a8a !important; }
-        .dark .bg-green-50 { background-color: #166534 !important; }
-        .dark .bg-red-100 { background-color: #991b1b !important; }
-        .dark .bg-green-100 { background-color: #166534 !important; }
-        .dark .bg-blue-100 { background-color: #1e3a8a !important; }
-        
-        .dark .text-gray-800 { color: #e2e8f0 !important; }
-        .dark .text-gray-900 { color: #f1f5f9 !important; }
-        .dark .text-gray-700 { color: #cbd5e1 !important; }
-        .dark .text-gray-600 { color: #94a3b8 !important; }
-        .dark .text-gray-500 { color: #64748b !important; }
-        .dark .text-blue-800 { color: #3b82f6 !important; }
-        .dark .text-blue-900 { color: #93c5fd !important; }
-        .dark .text-blue-700 { color: #60a5fa !important; }
-        .dark .text-green-800 { color: #22c55e !important; }
-        .dark .text-red-800 { color: #ef4444 !important; }
-        
-        .dark .border-gray-200 { border-color: #475569 !important; }
-        .dark .border-gray-300 { border-color: #64748b !important; }
-        .dark .border-blue-300 { border-color: #3b82f6 !important; }
-        .dark .border-t { border-color: #475569 !important; }
-        
-        /* Input field styling for better visibility */
-        input[type="text"], input[type="time"], select, textarea {
-            background-color: #ffffff !important;
-            color: #1f2937 !important;
-            border: 1px solid #d1d5db !important;
-        }
-        
-        .dark input[type="text"], .dark input[type="time"], .dark select, .dark textarea {
-            background-color: #374151 !important;
-            color: #f9fafb !important;
-            border: 1px solid #6b7280 !important;
-        }
-        
-        input[type="text"]:focus, input[type="time"]:focus, select:focus, textarea:focus {
-            outline: 2px solid #3b82f6 !important;
-            outline-offset: 2px !important;
-        }
-        
-        /* Enhanced timetable styles with consolidated grid strategy */
-        .schedule-table {
-            table-layout: fixed;
-            border-collapse: separate;
-            border-spacing: 0;
-            position: relative;
-        }
-        
-        /* Single grid line strategy - horizontal and vertical lines */
-        .schedule-table th, .schedule-table td {
-            border: none;
-            position: relative;
-            padding: var(--cell-padding);
-            vertical-align: top;
-        }
-        
-        /* Horizontal grid lines between rows */
-        .schedule-table tbody tr:not(:last-child) td::after {
-            content: '';
-            position: absolute;
-            left: 0;
-            right: 0;
-            bottom: -1px;
-            height: 2px;
-            background-color: #e5e7eb;
-            z-index: 1;
-            pointer-events: none;
-        }
-        
-        .dark .schedule-table tbody tr:not(:last-child) td::after {
-            background-color: #4b5563;
-        }
-        
-        /* Improve class card visibility */
-        .class-card {
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            border-radius: 6px;
-            transition: all 0.2s ease;
-        }
-        
-        .class-card:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-        }
-        
-        .dark .class-card {
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-        }
-        
-        .dark .class-card:hover {
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
-        }
-        
-        /* Enhanced positioning styles for timetable */
-        .schedule-table {
-            table-layout: fixed;
-            position: relative;
-        }
-        
-        .schedule-table tbody tr {
-            position: relative;
-            min-height: 100px;
-        }
-        
-        .schedule-table tbody td {
-            position: relative;
-            overflow: visible;
-            vertical-align: top;
-        }
-        
-        /* Improved class card styles for better positioning */
-        .class-card {
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
-            border-radius: 8px;
-            transition: all 0.2s ease;
-            font-family: 'Poppins', sans-serif;
-            min-width: 100px;
-            word-wrap: break-word;
-            pointer-events: auto;
-        }
-        
-        .class-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
-            z-index: 100;
-        }
-        
-        .dark .class-card {
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-        }
-        
-        .dark .class-card:hover {
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-        }
-        
-        /* Consolidated vertical grid lines with proper z-index hierarchy */
-        .schedule-table th:not(:first-child)::before,
-        .schedule-table td:not(:first-child)::before {
-            content: '';
-            position: absolute;
-            left: -1px;
-            top: 0;
-            bottom: 0;
-            width: 2px;
-            background-color: #e5e7eb;
-            z-index: 1;
-            pointer-events: none;
-        }
-        
-        .dark .schedule-table th:not(:first-child)::before,
-        .dark .schedule-table td:not(:first-child)::before {
-            background-color: #4b5563;
-        }
-        
-        /* Move sticky positioning from thead to individual th elements for better compatibility */
-        .schedule-table thead th {
-            position: sticky;
-            top: 0;
-            background-color: #f3f4f6;
-            z-index: 20;
-        }
-        
-        .dark .schedule-table thead th {
-            background-color: #374151;
-        }
-        
-        /* Sticky day column with higher z-index than grid lines */
-        .schedule-table th:first-child,
-        .schedule-table td:first-child {
-            position: sticky;
-            left: 0;
-            z-index: 15;
-            background-color: inherit;
-        }
-        
-        /* Add visible separator between sticky day column and time slots */
-        .schedule-table td:first-child::after {
-            content: '';
-            position: absolute;
-            right: -1px;
-            top: 0;
-            bottom: 0;
-            width: 2px;
-            background-color: #e5e7eb;
-            z-index: 16;
-            pointer-events: none;
-        }
-        
-        .dark .schedule-table td:first-child::after {
-            background-color: #4b5563;
-        }
-        
-        .schedule-table thead th:first-child {
-            z-index: 25; /* Highest z-index for header + sticky intersection */
-        }
-        
-        /* Day column background colors */
-        .schedule-table tbody td:first-child {
-            background-color: #f9fafb;
-        }
-        
-        .dark .schedule-table tbody td:first-child {
-            background-color: #1f2937;
-        }
-        
-        /* Class cards with higher z-index than grid lines */
-        .class-card {
-            position: relative;
-            z-index: 10;
-        }
-        
-        .class-card:hover {
-            z-index: 100;
-        }
-        
-        
-        /* Prevent text overflow in class cards */
-        .class-card .truncate {
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-        
-        /* CSS Grid for timetable days */
-        .day-grid {
-            display: grid;
-            grid-template-columns: repeat(7, minmax(8rem, 1fr));
-            grid-auto-rows: minmax(70px, auto);
-            align-items: stretch;
-            gap: 2px;
-            width: 100%;
-        }
-        
-        /* CSS Custom Properties for responsive font sizing */
-        :root {
-            --cc-name-size: clamp(0.625rem, 1.5vw, 0.875rem); /* 10px to 14px */
-            --cc-detail-size: clamp(0.5rem, 1.2vw, 0.75rem); /* 8px to 12px */
-            --cc-name-line: clamp(0.7rem, 1.8vw, 1rem);
-            --cc-detail-line: clamp(0.6rem, 1.4vw, 0.85rem);
-            --cell-padding: clamp(0.25rem, 1vw, 0.75rem);
-            --min-tap-target: 44px;
-        }
-        
-        /* Font hierarchy classes for class cards with custom properties */
-        .class-card-name {
-            font-size: var(--cc-name-size);
-            line-height: var(--cc-name-line);
-            margin-bottom: 0.0625rem;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-        }
-        
-        .class-card-details {
-            font-size: var(--cc-detail-size);
-            line-height: var(--cc-detail-line);
-            margin-bottom: 0.03125rem;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            display: -webkit-box;
-            -webkit-line-clamp: 3;
-            -webkit-box-orient: vertical;
-        }
-        
-        /* Responsive table improvements with mobile optimization */
-        @media (max-width: 768px) {
-            .schedule-table th, .schedule-table td {
-                min-width: clamp(90px, 15vw, 130px);
-                padding: var(--cell-padding);
-                min-height: var(--min-tap-target);
-            }
-            
-            .class-card {
-                min-width: 80px;
-                min-height: var(--min-tap-target);
-                padding: 0.5rem;
-            }
-            
-            .day-grid {
-                grid-template-columns: repeat(7, minmax(6rem, 1fr));
-            }
-            
-            /* Enable scroll snap for smooth mobile navigation */
-            .schedule-table-container {
-                scroll-snap-type: x mandatory;
-            }
-            
-            .schedule-table th:not(:first-child),
-            .schedule-table td:not(:first-child) {
-                scroll-snap-align: start;
-            }
-        }
-        
-        /* Smooth scrolling for horizontal overflow */
-        .schedule-table-container {
-            overflow-x: auto;
-            scroll-behavior: smooth;
-        }
-        
-        /* Tooltip styling for truncated text */
-        .has-tooltip {
-            cursor: help;
-            position: relative;
-        }
-        
-        .has-tooltip:hover::after {
-            content: attr(title);
-            position: absolute;
-            bottom: 100%;
-            left: 50%;
-            transform: translateX(-50%);
-            background-color: rgba(0, 0, 0, 0.9);
-            color: white;
-            padding: 0.5rem;
-            border-radius: 0.25rem;
-            font-size: 0.75rem;
-            white-space: nowrap;
-            z-index: 1000;
-            pointer-events: none;
-            max-width: 200px;
-            word-wrap: break-word;
-            white-space: normal;
-        }
-        
-        .dark .has-tooltip:hover::after {
-            background-color: rgba(255, 255, 255, 0.9);
-            color: black;
-        }
-    </style>
-</head>
-<body class="min-h-screen">
-    <div class="max-w-7xl mx-auto px-4 py-8">
-        <header class="text-center mb-8 relative">
-            <!-- Dark Mode Toggle -->
-            <button id="theme-toggle" class="absolute top-0 right-0 sm:top-0 sm:right-0 top-2 right-2 p-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors z-10">
-                <i id="theme-icon" class="fas fa-moon"></i>
-            </button>
-            <h1 class="text-3xl sm:text-4xl font-bold text-blue-600 dark:text-blue-400 mb-3 pr-12 sm:pr-0"><i class="fas fa-users mr-2"></i>Campus Connect</h1>
-            <p class="text-gray-600 dark:text-gray-300 text-lg">Track your friends' schedules and coordinate movements around campus</p>
-        </header>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Campus Connect - Friend Timetable Tracker</title>
+        <link
+            rel="icon"
+            href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>👥</text></svg>"
+        />
+        <script src="https://cdn.tailwindcss.com"></script>
+        <script>
+            tailwind.config = {
+                darkMode: "class",
+            };
+        </script>
+        <link
+            rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+        />
+        <style>
+            @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap");
 
-        <div class="bg-white rounded-xl shadow-lg overflow-hidden">
-            <div class="flex border-b">
-                <button class="tab-btn flex-1 py-4 font-medium text-center text-blue-600 active" data-tab="tracker">
-                    <i class="fas fa-map-marker-alt mr-2"></i>Tracker
-                </button>
-                <button class="tab-btn flex-1 py-4 font-medium text-center text-gray-500" data-tab="timetable">
-                    <i class="fas fa-calendar-alt mr-2"></i>Timetable
-                </button>
-                <button class="tab-btn flex-1 py-4 font-medium text-center text-gray-500" data-tab="group">
-                    <i class="fas fa-user-friends mr-2"></i>Group
-                </button>
-            </div>
-
-            <div id="tracker-tab" class="tab-content p-6">
-                <!-- Current Time Clock Display -->
-                <div class="mb-6">
-                    <div class="bg-gradient-to-r from-blue-500 to-blue-700 rounded-xl p-8 text-center text-white">
-                        <h3 class="text-lg font-medium mb-2 opacity-90">Current Time</h3>
-                        <div id="current-time" class="text-4xl font-bold mb-2">11:34 PM</div>
-                        <div id="current-date" class="text-lg opacity-90">Monday, September 22, 2025</div>
-                    </div>
-                </div>
-
-                <!-- Friend Status Message -->
-                <div class="mb-6 text-center">
-                    <p class="text-gray-500">Friend statuses will appear here once you connect to a group.</p>
-                </div>
-
-                <!-- Existing Group Activity and Members -->
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div class="order-2 lg:order-1">
-                        <div class="card bg-white border border-gray-200 rounded-xl p-6">
-                            <h2 class="text-xl font-semibold mb-4 text-gray-800"><i class="fas fa-bell mr-2"></i>Recent Group Activity</h2>
-                            <div id="recent-activity-list" class="space-y-4">
-                                <p class="text-gray-500">Join a group to see the latest activity.</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="order-1 lg:order-2">
-                        <div class="card bg-white border border-gray-200 rounded-xl p-6">
-                            <h2 class="text-xl font-semibold mb-4 text-gray-800"><i class="fas fa-user-friends mr-2"></i>Group Members</h2>
-                            <div id="group-members-list" class="space-y-3">
-                                <p class="text-gray-500">Members will appear here as they add classes.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <div id="timetable-tab" class="tab-content hidden p-6">
-                <div class="mb-6">
-                    <h2 class="text-xl font-semibold mb-4 text-gray-800"><i class="fas fa-calendar-plus mr-2"></i>Add / Edit Class</h2>
-                    <div class="card bg-blue-50 rounded-xl p-6">
-                        <form id="add-class-form" onsubmit="event.preventDefault();">
-                             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Day</label>
-                                    <select class="w-full p-3 border border-gray-300 rounded-lg" id="class-day">
-                                        <option value="Monday">Monday</option>
-                                        <option value="Tuesday">Tuesday</option>
-                                        <option value="Wednesday">Wednesday</option>
-                                        <option value="Thursday">Thursday</option>
-                                        <option value="Friday">Friday</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
-                                    <input type="time" class="w-full p-3 border border-gray-300 rounded-lg" id="start-time" required>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">End Time</label>
-                                    <input type="time" class="w-full p-3 border border-gray-300 rounded-lg" id="end-time" required>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Location</label>
-                                    <select class="w-full p-3 border border-gray-300 rounded-lg" id="class-location">
-                                        <option value="AB-1">AB-1</option>
-                                        <option value="AB-2">AB-2</option>
-                                        <option value="LC">LC</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="grid grid-cols-1 gap-4 mb-4">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Subject Name</label>
-                                    <input type="text" class="w-full p-3 border border-gray-300 rounded-lg" id="subject-name" placeholder="e.g., Calculus" required>
-                                </div>
-                            </div>
-                            <div id="form-buttons" class="flex gap-3">
-                                <button id="add-update-btn" class="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors">
-                                    <i class="fas fa-plus mr-2"></i>Add Class
-                                </button>
-                                <button id="delete-btn" class="hidden bg-red-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-red-700 transition-colors">
-                                    <i class="fas fa-trash mr-2"></i>Delete Class
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-                <h2 class="text-xl font-semibold mb-4 text-gray-800"><i class="fas fa-calendar-check mr-2"></i>Interactive Weekly Schedule</h2>
-                <div class="overflow-x-auto w-full schedule-table-container">
-                    <table class="min-w-full bg-white rounded-xl shadow-sm schedule-table" style="width: 100%; table-layout: fixed;">
-                        <thead>
-                            <tr class="bg-gray-100">
-                                <th class="p-3 text-left font-semibold text-gray-700 sticky left-0 bg-gray-100">Day</th>
-                                <th class="p-3 text-center font-semibold text-gray-700 text-sm">8:30</th>
-                                <th class="p-3 text-center font-semibold text-gray-700 text-sm">10:05</th>
-                                <th class="p-3 text-center font-semibold text-gray-700 text-sm">11:40</th>
-                                <th class="p-3 text-center font-semibold text-gray-700 text-sm">13:15</th>
-                                <th class="p-3 text-center font-semibold text-gray-700 text-sm">14:50</th>
-                                <th class="p-3 text-center font-semibold text-gray-700 text-sm">16:25</th>
-                                <th class="p-3 text-center font-semibold text-gray-700 text-sm">18:00</th>
-                            </tr>
-                        </thead>
-                        <tbody id="schedule-table"></tbody>
-                    </table>
-                </div>
-            </div>
-
-            <div id="group-tab" class="tab-content hidden p-6">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="card bg-blue-50 rounded-xl p-6">
-                        <h2 class="text-xl font-semibold mb-4 text-blue-800"><i class="fas fa-user-circle mr-2"></i>Your Info</h2>
-                        <div class="mb-4">
-                            <label for="user-name" class="block text-sm font-medium text-gray-700 mb-1">Your Name</label>
-                            <input type="text" id="user-name" class="w-full p-3 border border-gray-300 rounded-lg" placeholder="Enter your name to tag your classes">
-                        </div>
-                    </div>
-                    <div class="card bg-green-50 rounded-xl p-6">
-                        <h2 class="text-xl font-semibold mb-4 text-green-800"><i class="fas fa-sign-in-alt mr-2"></i>Join or Create a Group</h2>
-                        <div class="mb-4">
-                            <label for="group-code" class="block text-sm font-medium text-gray-700 mb-1">Group Code</label>
-                            <div class="flex flex-col sm:flex-row gap-2 sm:gap-0">
-                                <input type="text" id="group-code" class="flex-1 p-3 border border-gray-300 rounded-lg sm:rounded-l-lg sm:rounded-r-none" placeholder="e.g., KYAKAROGE">
-                                <button onclick="joinGroup()" class="bg-green-600 text-white px-5 py-3 rounded-lg sm:rounded-l-none sm:rounded-r-lg hover:bg-green-700 font-medium whitespace-nowrap">Join</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div id="group-status" class="text-center mt-6 p-4 rounded-lg bg-gray-100 text-gray-700 opacity-0 transition-opacity">
-                    Connecting to group...
-                </div>
-            </div>
-        </div>
-        <footer class="text-center mt-8 text-gray-500 text-sm">
-            <p>© 2025 Campus Connect</p>
-        </footer>
-    </div>
-
-    <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-firestore-compat.js"></script>
-
-    <script>
-        // Firebase configuration will be loaded from server
-        let db = null;
-        let classesCollection = null;
-        let unsubscribe = null;
-        
-        // Initialize Firebase with configuration from server
-        async function initializeFirebase() {
-            try {
-                const response = await fetch('/api/config');
-                const { firebaseConfig } = await response.json();
-                
-                firebase.initializeApp(firebaseConfig);
-                db = firebase.firestore();
-                
-                // Configure Firestore settings for better connectivity
-                db.settings({
-                    experimentalForceLongPolling: true // Use long polling instead of WebChannel
-                });
-                
-                // Enable offline persistence
-                db.enablePersistence().catch(error => {
-                    console.log('Offline persistence failed:', error);
-                });
-                
-                console.log('Firebase initialized successfully');
-                
-            } catch (error) {
-                console.error('Firebase initialization failed:', error);
-            }
-        }
-
-        // --- Theme Management ---
-        function initializeTheme() {
-            const savedTheme = localStorage.getItem('theme');
-            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-            
-            if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
-                applyDarkTheme();
-            } else {
-                applyLightTheme();
-            }
-        }
-        
-        function applyDarkTheme() {
-            document.documentElement.classList.add('dark');
-            document.body.classList.add('dark');
-            document.getElementById('theme-icon').className = 'fas fa-sun';
-            localStorage.setItem('theme', 'dark');
-        }
-        
-        function applyLightTheme() {
-            document.documentElement.classList.remove('dark');
-            document.body.classList.remove('dark');
-            document.getElementById('theme-icon').className = 'fas fa-moon';
-            localStorage.setItem('theme', 'light');
-        }
-        
-        function toggleTheme() {
-            if (document.documentElement.classList.contains('dark')) {
-                applyLightTheme();
-            } else {
-                applyDarkTheme();
-            }
-        }
-
-        // --- Text Fitting and Dynamic Adjustment Functions ---
-        function fitCardText(card) {
-            if (!card) return;
-            
-            const nameElement = card.querySelector('.class-card-name');
-            const detailElement = card.querySelector('.class-card-details');
-            
-            if (nameElement) {
-                fitTextToContainer(nameElement, '--cc-name-size');
-            }
-            if (detailElement) {
-                fitTextToContainer(detailElement, '--cc-detail-size');
-            }
-        }
-        
-        function fitTextToContainer(element, cssProperty) {
-            if (!element) return;
-            
-            const container = element.closest('.class-card');
-            if (!container) return;
-            
-            // Define fixed size ranges in pixels instead of parsing CSS custom properties
-            const minPx = cssProperty === '--cc-name-size' ? 8 : 6.4; // 0.5rem : 0.4rem
-            const maxPx = cssProperty === '--cc-name-size' ? 16 : 13.6; // 1rem : 0.85rem
-            
-            // Start with maximum font size
-            let fontSize = maxPx;
-            
-            // Store original styles for restoration
-            const originalDisplay = element.style.display;
-            const originalWebkitLineClamp = element.style.webkitLineClamp;
-            const originalWebkitBoxOrient = element.style.webkitBoxOrient;
-            
-            // Temporarily disable line-clamp for accurate measurement
-            element.style.webkitLineClamp = 'unset';
-            element.style.webkitBoxOrient = 'unset';
-            element.style.display = 'block';
-            
-            // Set initial font size
-            element.style.fontSize = `${fontSize}px`;
-            
-            // Get container bounds
-            const containerRect = container.getBoundingClientRect();
-            const containerPadding = parseFloat(getComputedStyle(container).paddingLeft) + 
-                                   parseFloat(getComputedStyle(container).paddingRight);
-            const availableWidth = containerRect.width - containerPadding;
-            const availableHeight = containerRect.height - parseFloat(getComputedStyle(container).paddingTop) - 
-                                  parseFloat(getComputedStyle(container).paddingBottom);
-            
-            // Iteratively reduce font size until text fits with safety checks
-            let iterations = 0;
-            const maxIterations = 50; // Prevent infinite loops
-            
-            while (fontSize >= minPx && iterations < maxIterations) {
-                element.style.fontSize = `${fontSize}px`;
-                
-                const elementRect = element.getBoundingClientRect();
-                
-                // Check if content fits within available space
-                if (elementRect.width <= availableWidth && elementRect.height <= availableHeight) {
-                    break;
+            /* Enable dark mode */
+            @media (prefers-color-scheme: dark) {
+                html:not(.light) {
+                    color-scheme: dark;
                 }
-                
-                fontSize -= 0.5;
-                iterations++;
             }
-            
-            // Ensure minimum font size
-            if (fontSize < minPx) {
-                fontSize = minPx;
-                element.style.fontSize = `${fontSize}px`;
+            html.dark {
+                color-scheme: dark;
             }
-            
-            // Restore original styles
-            element.style.display = originalDisplay;
-            element.style.webkitLineClamp = originalWebkitLineClamp;
-            element.style.webkitBoxOrient = originalWebkitBoxOrient;
-            
-            // Add tooltip if text is truncated
-            if (fontSize <= minPx || element.scrollHeight > element.clientHeight) {
-                addTooltipToElement(element);
-            } else {
-                removeTooltipFromElement(element);
+
+            body {
+                font-family: "Poppins", sans-serif;
+                background-color: #f8fafc;
+                color: #334155;
+                transition:
+                    background-color 0.3s,
+                    color 0.3s;
             }
-        }
-        
-        function addTooltipToElement(element) {
-            if (!element.hasAttribute('title') && element.textContent.trim()) {
-                element.setAttribute('title', element.textContent.trim());
-                element.classList.add('has-tooltip');
+
+            /* Dark mode styles */
+            body.dark {
+                background-color: #0f172a;
+                color: #e2e8f0;
             }
-        }
-        
-        function removeTooltipFromElement(element) {
-            element.removeAttribute('title');
-            element.classList.remove('has-tooltip');
-        }
-        
-        // Initialize observers for dynamic text adjustment
-        function initializeTextObservers() {
-            // MutationObserver to watch for content changes
-            const contentObserver = new MutationObserver((mutations) => {
-                mutations.forEach((mutation) => {
-                    if (mutation.type === 'childList' || mutation.type === 'characterData') {
-                        const cards = document.querySelectorAll('.class-card');
-                        cards.forEach(card => {
-                            // Debounce to avoid excessive calls
-                            clearTimeout(card._fitTimeout);
-                            card._fitTimeout = setTimeout(() => fitCardText(card), 50);
-                        });
+
+            .card {
+                transition:
+                    transform 0.3s,
+                    box-shadow 0.3s,
+                    background-color 0.3s;
+            }
+            .card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            }
+            .dark .card:hover {
+                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+            }
+
+            .tab-btn.active {
+                border-bottom: 3px solid #3b82f6;
+            }
+            .notification {
+                animation: fadeIn 0.5s ease-in;
+            }
+            @keyframes fadeIn {
+                from {
+                    opacity: 0;
+                }
+                to {
+                    opacity: 1;
+                }
+            }
+
+            /* Dark mode specific styles */
+            .dark .bg-white {
+                background-color: #1e293b !important;
+            }
+            .dark .bg-gray-50 {
+                background-color: #334155 !important;
+            }
+            .dark .bg-gray-100 {
+                background-color: #475569 !important;
+            }
+            .dark .bg-gray-200 {
+                background-color: #64748b !important;
+            }
+            .dark .bg-blue-50 {
+                background-color: #1e3a8a !important;
+            }
+            .dark .bg-green-50 {
+                background-color: #166534 !important;
+            }
+            .dark .bg-red-100 {
+                background-color: #991b1b !important;
+            }
+            .dark .bg-green-100 {
+                background-color: #166534 !important;
+            }
+            .dark .bg-blue-100 {
+                background-color: #1e3a8a !important;
+            }
+
+            .dark .text-gray-800 {
+                color: #e2e8f0 !important;
+            }
+            .dark .text-gray-900 {
+                color: #f1f5f9 !important;
+            }
+            .dark .text-gray-700 {
+                color: #cbd5e1 !important;
+            }
+            .dark .text-gray-600 {
+                color: #94a3b8 !important;
+            }
+            .dark .text-gray-500 {
+                color: #64748b !important;
+            }
+            .dark .text-blue-800 {
+                color: #3b82f6 !important;
+            }
+            .dark .text-blue-900 {
+                color: #93c5fd !important;
+            }
+            .dark .text-blue-700 {
+                color: #60a5fa !important;
+            }
+            .dark .text-green-800 {
+                color: #22c55e !important;
+            }
+            .dark .text-red-800 {
+                color: #ef4444 !important;
+            }
+
+            .dark .border-gray-200 {
+                border-color: #475569 !important;
+            }
+            .dark .border-gray-300 {
+                border-color: #64748b !important;
+            }
+            .dark .border-blue-300 {
+                border-color: #3b82f6 !important;
+            }
+            .dark .border-t {
+                border-color: #475569 !important;
+            }
+
+            /* Input field styling for better visibility */
+            input[type="text"],
+            input[type="time"],
+            select,
+            textarea {
+                background-color: #ffffff !important;
+                color: #1f2937 !important;
+                border: 1px solid #d1d5db !important;
+            }
+
+            .dark input[type="text"],
+            .dark input[type="time"],
+            .dark select,
+            .dark textarea {
+                background-color: #374151 !important;
+                color: #f9fafb !important;
+                border: 1px solid #6b7280 !important;
+            }
+
+            input[type="text"]:focus,
+            input[type="time"]:focus,
+            select:focus,
+            textarea:focus {
+                outline: 2px solid #3b82f6 !important;
+                outline-offset: 2px !important;
+            }
+
+            /* Enhanced timetable styles with consolidated grid strategy */
+            .schedule-table {
+                table-layout: fixed;
+                border-collapse: separate;
+                border-spacing: 0;
+                position: relative;
+            }
+
+            /* Single grid line strategy - horizontal and vertical lines */
+            .schedule-table th,
+            .schedule-table td {
+                border: none;
+                position: relative;
+                padding: var(--cell-padding);
+                vertical-align: top;
+            }
+
+            /* Horizontal grid lines between rows */
+            .schedule-table tbody tr:not(:last-child) td::after {
+                content: "";
+                position: absolute;
+                left: 0;
+                right: 0;
+                bottom: -1px;
+                height: 2px;
+                background-color: #e5e7eb;
+                z-index: 1;
+                pointer-events: none;
+            }
+
+            .dark .schedule-table tbody tr:not(:last-child) td::after {
+                background-color: #4b5563;
+            }
+
+
+            /* Enhanced positioning styles for timetable */
+            .schedule-table {
+                table-layout: fixed;
+                position: relative;
+            }
+
+            .schedule-table tbody tr {
+                position: relative;
+                min-height: 70px;
+                height: 70px;
+            }
+
+            .schedule-table tbody td {
+                position: relative;
+                overflow: hidden;
+                vertical-align: top;
+                padding: var(--cell-padding);
+                height: 70px;
+                max-height: 70px;
+            }
+
+            /* Unified class card styles */
+            .class-card {
+                position: relative;
+                z-index: 10;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+                border-radius: 6px;
+                transition: all 0.2s ease;
+                font-family: "Poppins", sans-serif;
+                min-width: 100px;
+                max-width: 100%;
+                min-height: 60px;
+                padding: 4px 6px;
+                word-wrap: break-word;
+                overflow: hidden;
+                pointer-events: auto;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                text-align: center;
+                margin: 2px;
+                box-sizing: border-box;
+            }
+
+            .class-card:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+                z-index: 100;
+            }
+
+            .dark .class-card {
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            }
+
+            .dark .class-card:hover {
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+            }
+
+            /* Consolidated vertical grid lines with proper z-index hierarchy */
+            .schedule-table th:not(:first-child)::before,
+            .schedule-table td:not(:first-child)::before {
+                content: "";
+                position: absolute;
+                left: -1px;
+                top: 0;
+                bottom: 0;
+                width: 2px;
+                background-color: #e5e7eb;
+                z-index: 1;
+                pointer-events: none;
+            }
+
+            .dark .schedule-table th:not(:first-child)::before,
+            .dark .schedule-table td:not(:first-child)::before {
+                background-color: #4b5563;
+            }
+
+            /* Move sticky positioning from thead to individual th elements for better compatibility */
+            .schedule-table thead th {
+                position: sticky;
+                top: 0;
+                background-color: #f3f4f6;
+                z-index: 20;
+            }
+
+            .dark .schedule-table thead th {
+                background-color: #374151;
+            }
+
+            /* Sticky day column with higher z-index than grid lines */
+            .schedule-table th:first-child,
+            .schedule-table td:first-child {
+                position: sticky;
+                left: 0;
+                z-index: 15;
+                background-color: inherit;
+            }
+
+            /* Add visible separator between sticky day column and time slots */
+            .schedule-table td:first-child::after {
+                content: "";
+                position: absolute;
+                right: -1px;
+                top: 0;
+                bottom: 0;
+                width: 2px;
+                background-color: #e5e7eb;
+                z-index: 16;
+                pointer-events: none;
+            }
+
+            .dark .schedule-table td:first-child::after {
+                background-color: #4b5563;
+            }
+
+            .schedule-table thead th:first-child {
+                z-index: 25; /* Highest z-index for header + sticky intersection */
+            }
+
+            /* Day column background colors */
+            .schedule-table tbody td:first-child {
+                background-color: #f9fafb;
+            }
+
+            .dark .schedule-table tbody td:first-child {
+                background-color: #1f2937;
+            }
+
+
+            /* Prevent text overflow in class cards */
+            .class-card .truncate {
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+
+            /* CSS Grid for timetable days */
+            .day-grid {
+                display: grid;
+                grid-template-columns: repeat(7, minmax(8rem, 1fr));
+                grid-auto-rows: minmax(70px, auto);
+                align-items: stretch;
+                gap: 2px;
+                width: 100%;
+            }
+
+            /* CSS Custom Properties for responsive font sizing */
+            :root {
+                --cc-name-size: clamp(
+                    0.625rem,
+                    1.5vw,
+                    0.75rem
+                ); /* 10px to 12px */
+                --cc-detail-size: clamp(
+                    0.5rem,
+                    1.2vw,
+                    0.625rem
+                ); /* 8px to 10px */
+                --cc-name-line: clamp(0.75rem, 1.8vw, 0.9rem);
+                --cc-detail-line: clamp(0.6rem, 1.4vw, 0.75rem);
+                --cell-padding: clamp(0.25rem, 1vw, 0.5rem);
+                --min-tap-target: 44px;
+            }
+
+            /* Font hierarchy classes for class cards with custom properties */
+            .class-card-name {
+                font-size: var(--cc-name-size);
+                line-height: var(--cc-name-line);
+                margin-bottom: 0.125rem;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                display: -webkit-box;
+                -webkit-line-clamp: 1;
+                -webkit-box-orient: vertical;
+                font-weight: 600;
+            }
+
+            .class-card-details {
+                font-size: var(--cc-detail-size);
+                line-height: var(--cc-detail-line);
+                margin-bottom: 0.0625rem;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                display: -webkit-box;
+                -webkit-line-clamp: 1;
+                -webkit-box-orient: vertical;
+            }
+
+            /* Responsive table improvements with mobile optimization */
+            @media (max-width: 768px) {
+                .schedule-table th,
+                .schedule-table td {
+                    min-width: clamp(80px, 12vw, 110px);
+                    padding: var(--cell-padding);
+                    min-height: 60px;
+                    height: 60px;
+                    max-height: 60px;
+                }
+
+                .class-card {
+                    min-width: 70px;
+                    min-height: 50px;
+                    padding: 3px 4px;
+                    margin: 1px;
+                }
+
+                .day-grid {
+                    grid-template-columns: repeat(7, minmax(5rem, 1fr));
+                }
+
+                /* Enable scroll snap for smooth mobile navigation */
+                .schedule-table-container {
+                    scroll-snap-type: x mandatory;
+                }
+
+                .schedule-table th:not(:first-child),
+                .schedule-table td:not(:first-child) {
+                    scroll-snap-align: start;
+                }
+            }
+
+            /* Smooth scrolling for horizontal overflow */
+            .schedule-table-container {
+                overflow-x: auto;
+                scroll-behavior: smooth;
+            }
+
+            /* Tooltip styling for truncated text */
+            .has-tooltip {
+                cursor: help;
+                position: relative;
+            }
+
+            .has-tooltip:hover::after {
+                content: attr(title);
+                position: absolute;
+                bottom: 100%;
+                left: 50%;
+                transform: translateX(-50%);
+                background-color: rgba(0, 0, 0, 0.9);
+                color: white;
+                padding: 0.5rem;
+                border-radius: 0.25rem;
+                font-size: 0.75rem;
+                white-space: nowrap;
+                z-index: 1000;
+                pointer-events: none;
+                max-width: 200px;
+                word-wrap: break-word;
+                white-space: normal;
+            }
+
+            .dark .has-tooltip:hover::after {
+                background-color: rgba(255, 255, 255, 0.9);
+                color: black;
+            }
+        </style>
+    </head>
+    <body class="min-h-screen">
+        <div class="max-w-7xl mx-auto px-4 py-8">
+            <header class="text-center mb-8 relative">
+                <!-- Dark Mode Toggle -->
+                <button
+                    id="theme-toggle"
+                    class="absolute top-0 right-0 sm:top-0 sm:right-0 top-2 right-2 p-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors z-10"
+                >
+                    <i id="theme-icon" class="fas fa-moon"></i>
+                </button>
+                <h1
+                    class="text-3xl sm:text-4xl font-bold text-blue-600 dark:text-blue-400 mb-3 pr-12 sm:pr-0"
+                >
+                    <i class="fas fa-users mr-2"></i>Campus Connect
+                </h1>
+                <p class="text-gray-600 dark:text-gray-300 text-lg">
+                    Track your friends' schedules and coordinate movements
+                    around campus
+                </p>
+            </header>
+
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                <div class="flex border-b">
+                    <button
+                        class="tab-btn flex-1 py-4 font-medium text-center text-blue-600 active"
+                        data-tab="tracker"
+                    >
+                        <i class="fas fa-map-marker-alt mr-2"></i>Tracker
+                    </button>
+                    <button
+                        class="tab-btn flex-1 py-4 font-medium text-center text-gray-500"
+                        data-tab="timetable"
+                    >
+                        <i class="fas fa-calendar-alt mr-2"></i>Timetable
+                    </button>
+                    <button
+                        class="tab-btn flex-1 py-4 font-medium text-center text-gray-500"
+                        data-tab="group"
+                    >
+                        <i class="fas fa-user-friends mr-2"></i>Group
+                    </button>
+                </div>
+
+                <div id="tracker-tab" class="tab-content p-6">
+                    <!-- Current Time Clock Display -->
+                    <div class="mb-6">
+                        <div
+                            class="bg-gradient-to-r from-blue-500 to-blue-700 rounded-xl p-8 text-center text-white"
+                        >
+                            <h3 class="text-lg font-medium mb-2 opacity-90">
+                                Current Time
+                            </h3>
+                            <div
+                                id="current-time"
+                                class="text-4xl font-bold mb-2"
+                            >
+                                11:34 PM
+                            </div>
+                            <div id="current-date" class="text-lg opacity-90">
+                                Monday, September 22, 2025
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Friend Status Message -->
+                    <div class="mb-6 text-center">
+                        <p class="text-gray-500">
+                            Friend statuses will appear here once you connect to
+                            a group.
+                        </p>
+                    </div>
+
+                    <!-- Existing Group Activity and Members -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="order-2 lg:order-1">
+                            <div
+                                class="card bg-white border border-gray-200 rounded-xl p-6"
+                            >
+                                <h2
+                                    class="text-xl font-semibold mb-4 text-gray-800"
+                                >
+                                    <i class="fas fa-bell mr-2"></i>Recent Group
+                                    Activity
+                                </h2>
+                                <div
+                                    id="recent-activity-list"
+                                    class="space-y-4"
+                                >
+                                    <p class="text-gray-500">
+                                        Join a group to see the latest activity.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="order-1 lg:order-2">
+                            <div
+                                class="card bg-white border border-gray-200 rounded-xl p-6"
+                            >
+                                <h2
+                                    class="text-xl font-semibold mb-4 text-gray-800"
+                                >
+                                    <i class="fas fa-user-friends mr-2"></i
+                                    >Group Members
+                                </h2>
+                                <div id="group-members-list" class="space-y-3">
+                                    <p class="text-gray-500">
+                                        Members will appear here as they add
+                                        classes.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="timetable-tab" class="tab-content hidden p-6">
+                    <div class="mb-6">
+                        <h2 class="text-xl font-semibold mb-4 text-gray-800">
+                            <i class="fas fa-calendar-plus mr-2"></i>Add / Edit
+                            Class
+                        </h2>
+                        <div class="card bg-blue-50 rounded-xl p-6">
+                            <form
+                                id="add-class-form"
+                                onsubmit="event.preventDefault();"
+                            >
+                                <div
+                                    class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4"
+                                >
+                                    <div>
+                                        <label
+                                            class="block text-sm font-medium text-gray-700 mb-1"
+                                            >Day</label
+                                        >
+                                        <select
+                                            class="w-full p-3 border border-gray-300 rounded-lg"
+                                            id="class-day"
+                                        >
+                                            <option value="Monday">
+                                                Monday
+                                            </option>
+                                            <option value="Tuesday">
+                                                Tuesday
+                                            </option>
+                                            <option value="Wednesday">
+                                                Wednesday
+                                            </option>
+                                            <option value="Thursday">
+                                                Thursday
+                                            </option>
+                                            <option value="Friday">
+                                                Friday
+                                            </option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label
+                                            class="block text-sm font-medium text-gray-700 mb-1"
+                                            >Start Time</label
+                                        >
+                                        <input
+                                            type="time"
+                                            class="w-full p-3 border border-gray-300 rounded-lg"
+                                            id="start-time"
+                                            required
+                                        />
+                                    </div>
+                                    <div>
+                                        <label
+                                            class="block text-sm font-medium text-gray-700 mb-1"
+                                            >End Time</label
+                                        >
+                                        <input
+                                            type="time"
+                                            class="w-full p-3 border border-gray-300 rounded-lg"
+                                            id="end-time"
+                                            required
+                                        />
+                                    </div>
+                                    <div>
+                                        <label
+                                            class="block text-sm font-medium text-gray-700 mb-1"
+                                            >Location</label
+                                        >
+                                        <select
+                                            class="w-full p-3 border border-gray-300 rounded-lg"
+                                            id="class-location"
+                                        >
+                                            <option value="AB-1">AB-1</option>
+                                            <option value="AB-2">AB-2</option>
+                                            <option value="LC">LC</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-1 gap-4 mb-4">
+                                    <div>
+                                        <label
+                                            class="block text-sm font-medium text-gray-700 mb-1"
+                                            >Subject Name</label
+                                        >
+                                        <input
+                                            type="text"
+                                            class="w-full p-3 border border-gray-300 rounded-lg"
+                                            id="subject-name"
+                                            placeholder="e.g., Calculus"
+                                            required
+                                        />
+                                    </div>
+                                </div>
+                                <div id="form-buttons" class="flex gap-3">
+                                    <button
+                                        id="add-update-btn"
+                                        class="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                                    >
+                                        <i class="fas fa-plus mr-2"></i>Add
+                                        Class
+                                    </button>
+                                    <button
+                                        id="delete-btn"
+                                        class="hidden bg-red-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-red-700 transition-colors"
+                                    >
+                                        <i class="fas fa-trash mr-2"></i>Delete
+                                        Class
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                    <h2 class="text-xl font-semibold mb-4 text-gray-800">
+                        <i class="fas fa-calendar-check mr-2"></i>Interactive
+                        Weekly Schedule
+                    </h2>
+                    <div
+                        class="overflow-x-auto w-full schedule-table-container"
+                    >
+                        <table
+                            class="min-w-full bg-white rounded-xl shadow-sm schedule-table"
+                            style="width: 100%; table-layout: fixed"
+                        >
+                            <thead>
+                                <tr class="bg-gray-100">
+                                    <th
+                                        class="p-3 text-left font-semibold text-gray-700 sticky left-0 bg-gray-100"
+                                    >
+                                        Day
+                                    </th>
+                                    <th
+                                        class="p-3 text-center font-semibold text-gray-700 text-sm"
+                                    >
+                                        8:30
+                                    </th>
+                                    <th
+                                        class="p-3 text-center font-semibold text-gray-700 text-sm"
+                                    >
+                                        10:05
+                                    </th>
+                                    <th
+                                        class="p-3 text-center font-semibold text-gray-700 text-sm"
+                                    >
+                                        11:40
+                                    </th>
+                                    <th
+                                        class="p-3 text-center font-semibold text-gray-700 text-sm"
+                                    >
+                                        13:15
+                                    </th>
+                                    <th
+                                        class="p-3 text-center font-semibold text-gray-700 text-sm"
+                                    >
+                                        14:50
+                                    </th>
+                                    <th
+                                        class="p-3 text-center font-semibold text-gray-700 text-sm"
+                                    >
+                                        16:25
+                                    </th>
+                                    <th
+                                        class="p-3 text-center font-semibold text-gray-700 text-sm"
+                                    >
+                                        18:00
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody id="schedule-table"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="group-tab" class="tab-content hidden p-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="card bg-blue-50 rounded-xl p-6">
+                            <h2
+                                class="text-xl font-semibold mb-4 text-blue-800"
+                            >
+                                <i class="fas fa-user-circle mr-2"></i>Your Info
+                            </h2>
+                            <div class="mb-4">
+                                <label
+                                    for="user-name"
+                                    class="block text-sm font-medium text-gray-700 mb-1"
+                                    >Your Name</label
+                                >
+                                <input
+                                    type="text"
+                                    id="user-name"
+                                    class="w-full p-3 border border-gray-300 rounded-lg"
+                                    placeholder="Enter your name to tag your classes"
+                                />
+                            </div>
+                        </div>
+                        <div class="card bg-green-50 rounded-xl p-6">
+                            <h2
+                                class="text-xl font-semibold mb-4 text-green-800"
+                            >
+                                <i class="fas fa-sign-in-alt mr-2"></i>Join or
+                                Create a Group
+                            </h2>
+                            <div class="mb-4">
+                                <label
+                                    for="group-code"
+                                    class="block text-sm font-medium text-gray-700 mb-1"
+                                    >Group Code</label
+                                >
+                                <div
+                                    class="flex flex-col sm:flex-row gap-2 sm:gap-0"
+                                >
+                                    <input
+                                        type="text"
+                                        id="group-code"
+                                        class="flex-1 p-3 border border-gray-300 rounded-lg sm:rounded-l-lg sm:rounded-r-none"
+                                        placeholder="e.g., KYAKAROGE"
+                                    />
+                                    <button
+                                        onclick="joinGroup()"
+                                        class="bg-green-600 text-white px-5 py-3 rounded-lg sm:rounded-l-none sm:rounded-r-lg hover:bg-green-700 font-medium whitespace-nowrap"
+                                    >
+                                        Join
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div
+                        id="group-status"
+                        class="text-center mt-6 p-4 rounded-lg bg-gray-100 text-gray-700 opacity-0 transition-opacity"
+                    >
+                        Connecting to group...
+                    </div>
+                </div>
+            </div>
+            <footer class="text-center mt-8 text-gray-500 text-sm">
+                <p>© 2025 Campus Connect</p>
+            </footer>
+        </div>
+
+        <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-app-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-firestore-compat.js"></script>
+
+        <script>
+            // Firebase configuration - replace with your actual Firebase config
+            const firebaseConfig = {
+                apiKey: "AIzaSyC_1gMcl2CsFRzSMhntGTigeXfnYOHYoNk",
+                authDomain: "vit-campus-connect-cd0c3.firebaseapp.com",
+                projectId: "vit-campus-connect-cd0c3",
+                storageBucket: "vit-campus-connect-cd0c3.firebasestorage.app",
+                messagingSenderId: "53637648658",
+                appId: "1:53637648658:web:fcea85d52f6b022c2c63cb",
+            };
+
+            let db = null;
+            let classesCollection = null;
+            let unsubscribe = null;
+
+            // Initialize Firebase with embedded configuration
+            function initializeFirebase() {
+                try {
+                    // Check if configuration has been updated from defaults
+                    if (
+                        firebaseConfig.apiKey === "your-api-key-here" ||
+                        !firebaseConfig.apiKey ||
+                        firebaseConfig.projectId === "your-project-id"
+                    ) {
+                        console.warn(
+                            "Firebase configuration not set. Please update the firebaseConfig object in index.html with your actual Firebase project settings.",
+                        );
+                        return;
                     }
-                });
-            });
-            
-            // Observe the schedule table for content changes
-            const scheduleTable = document.getElementById('schedule-table');
-            if (scheduleTable) {
-                contentObserver.observe(scheduleTable, {
-                    childList: true,
-                    subtree: true,
-                    characterData: true
-                });
+
+                    firebase.initializeApp(firebaseConfig);
+                    db = firebase.firestore();
+
+                    // Configure Firestore settings for better connectivity
+                    db.settings({
+                        experimentalForceLongPolling: true, // Use long polling instead of WebChannel
+                    });
+
+                    // Enable offline persistence
+                    db.enablePersistence().catch((error) => {
+                        console.log("Offline persistence failed:", error);
+                    });
+
+                    console.log("Firebase initialized successfully");
+                } catch (error) {
+                    console.error("Firebase initialization failed:", error);
+                }
             }
-            
-            // ResizeObserver to watch for container size changes
-            if (window.ResizeObserver) {
-                const resizeObserver = new ResizeObserver((entries) => {
-                    entries.forEach((entry) => {
-                        const card = entry.target.closest('.class-card') || entry.target.querySelector('.class-card');
-                        if (card) {
-                            // Debounce resize events
-                            clearTimeout(card._resizeTimeout);
-                            card._resizeTimeout = setTimeout(() => fitCardText(card), 100);
+
+            // --- Theme Management ---
+            function initializeTheme() {
+                const savedTheme = localStorage.getItem("theme");
+                const prefersDark = window.matchMedia(
+                    "(prefers-color-scheme: dark)",
+                ).matches;
+
+                if (savedTheme === "dark" || (!savedTheme && prefersDark)) {
+                    applyDarkTheme();
+                } else {
+                    applyLightTheme();
+                }
+            }
+
+            function applyDarkTheme() {
+                document.documentElement.classList.add("dark");
+                document.body.classList.add("dark");
+                document.getElementById("theme-icon").className = "fas fa-sun";
+                localStorage.setItem("theme", "dark");
+            }
+
+            function applyLightTheme() {
+                document.documentElement.classList.remove("dark");
+                document.body.classList.remove("dark");
+                document.getElementById("theme-icon").className = "fas fa-moon";
+                localStorage.setItem("theme", "light");
+            }
+
+            function toggleTheme() {
+                if (document.documentElement.classList.contains("dark")) {
+                    applyLightTheme();
+                } else {
+                    applyDarkTheme();
+                }
+            }
+
+            // --- Text Fitting and Dynamic Adjustment Functions ---
+            function fitCardText(card) {
+                if (!card) return;
+
+                const nameElement = card.querySelector(".class-card-name");
+                const detailElement = card.querySelector(".class-card-details");
+
+                if (nameElement) {
+                    fitTextToContainer(nameElement, "--cc-name-size");
+                }
+                if (detailElement) {
+                    fitTextToContainer(detailElement, "--cc-detail-size");
+                }
+            }
+
+            function fitTextToContainer(element, cssProperty) {
+                if (!element) return;
+
+                const container = element.closest(".class-card");
+                if (!container) return;
+
+                // Define fixed size ranges in pixels instead of parsing CSS custom properties
+                const minPx = cssProperty === "--cc-name-size" ? 8 : 6.4; // 0.5rem : 0.4rem
+                const maxPx = cssProperty === "--cc-name-size" ? 16 : 13.6; // 1rem : 0.85rem
+
+                // Start with maximum font size
+                let fontSize = maxPx;
+
+                // Store original styles for restoration
+                const originalDisplay = element.style.display;
+                const originalWebkitLineClamp = element.style.webkitLineClamp;
+                const originalWebkitBoxOrient = element.style.webkitBoxOrient;
+
+                // Temporarily disable line-clamp for accurate measurement
+                element.style.webkitLineClamp = "unset";
+                element.style.webkitBoxOrient = "unset";
+                element.style.display = "block";
+
+                // Set initial font size
+                element.style.fontSize = `${fontSize}px`;
+
+                // Get container bounds
+                const containerRect = container.getBoundingClientRect();
+                const containerPadding =
+                    parseFloat(getComputedStyle(container).paddingLeft) +
+                    parseFloat(getComputedStyle(container).paddingRight);
+                const availableWidth = containerRect.width - containerPadding;
+                const availableHeight =
+                    containerRect.height -
+                    parseFloat(getComputedStyle(container).paddingTop) -
+                    parseFloat(getComputedStyle(container).paddingBottom);
+
+                // Iteratively reduce font size until text fits with safety checks
+                let iterations = 0;
+                const maxIterations = 50; // Prevent infinite loops
+
+                while (fontSize >= minPx && iterations < maxIterations) {
+                    element.style.fontSize = `${fontSize}px`;
+
+                    const elementRect = element.getBoundingClientRect();
+
+                    // Check if content fits within available space
+                    if (
+                        elementRect.width <= availableWidth &&
+                        elementRect.height <= availableHeight
+                    ) {
+                        break;
+                    }
+
+                    fontSize -= 0.5;
+                    iterations++;
+                }
+
+                // Ensure minimum font size
+                if (fontSize < minPx) {
+                    fontSize = minPx;
+                    element.style.fontSize = `${fontSize}px`;
+                }
+
+                // Restore original styles
+                element.style.display = originalDisplay;
+                element.style.webkitLineClamp = originalWebkitLineClamp;
+                element.style.webkitBoxOrient = originalWebkitBoxOrient;
+
+                // Add tooltip if text is truncated
+                if (
+                    fontSize <= minPx ||
+                    element.scrollHeight > element.clientHeight
+                ) {
+                    addTooltipToElement(element);
+                } else {
+                    removeTooltipFromElement(element);
+                }
+            }
+
+            function addTooltipToElement(element) {
+                if (
+                    !element.hasAttribute("title") &&
+                    element.textContent.trim()
+                ) {
+                    element.setAttribute("title", element.textContent.trim());
+                    element.classList.add("has-tooltip");
+                }
+            }
+
+            function removeTooltipFromElement(element) {
+                element.removeAttribute("title");
+                element.classList.remove("has-tooltip");
+            }
+
+            // Initialize observers for dynamic text adjustment
+            function initializeTextObservers() {
+                // MutationObserver to watch for content changes
+                const contentObserver = new MutationObserver((mutations) => {
+                    mutations.forEach((mutation) => {
+                        if (
+                            mutation.type === "childList" ||
+                            mutation.type === "characterData"
+                        ) {
+                            const cards =
+                                document.querySelectorAll(".class-card");
+                            cards.forEach((card) => {
+                                // Debounce to avoid excessive calls
+                                clearTimeout(card._fitTimeout);
+                                card._fitTimeout = setTimeout(
+                                    () => fitCardText(card),
+                                    50,
+                                );
+                            });
                         }
                     });
                 });
-                
-                // Observe all class cards
-                const observeCards = () => {
-                    document.querySelectorAll('.class-card').forEach(card => {
-                        resizeObserver.observe(card);
-                    });
-                };
-                
-                // Initial observation and re-observe when new cards are added
-                observeCards();
-                
-                // Re-observe periodically in case new cards are added
-                setInterval(observeCards, 2000);
-            }
-        }
 
-        // --- App Initialization ---
-        document.addEventListener('DOMContentLoaded', async () => {
-            // Initialize Firebase first
-            await initializeFirebase();
-            
-            // Initialize theme
-            initializeTheme();
-            document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
-            
-            // Class list functionality removed
-            
-            document.getElementById('user-name').value = localStorage.getItem('userName') || '';
-            const savedGroupCode = localStorage.getItem('groupCode');
-            if (savedGroupCode) {
-                document.getElementById('group-code').value = savedGroupCode;
-                joinGroup();
-            } else {
-                showGroupStatus('Enter your name and a group code to begin.', 'blue');
-            }
-            document.getElementById('add-update-btn').onclick = addClass;
-            
-            // Initialize text fitting observers
-            initializeTextObservers();
-            
-            // Initialize clock and status checking
-            updateClock();
-            setInterval(updateClock, 1000); // Update clock every second
-            
-            // Check class status every minute
-            setInterval(() => {
-                if (typeof window.currentSchedule !== 'undefined' && window.currentSchedule.length > 0) {
-                    checkClassStatus(window.currentSchedule);
-                }
-            }, 60000); // Check status every minute
-            
-            // Add window resize handler for responsive table positioning and text fitting
-            let resizeTimeout;
-            window.addEventListener('resize', () => {
-                // Debounce resize events to prevent excessive recalculations
-                clearTimeout(resizeTimeout);
-                resizeTimeout = setTimeout(() => {
-                    if (typeof window.currentSchedule !== 'undefined' && window.currentSchedule.length > 0) {
-                        // Refresh the timetable with updated positioning
-                        updateScheduleTable(window.currentSchedule);
-                    }
-                    
-                    // Re-fit text for all class cards after resize
-                    document.querySelectorAll('.class-card').forEach(card => {
-                        fitCardText(card);
+                // Observe the schedule table for content changes
+                const scheduleTable = document.getElementById("schedule-table");
+                if (scheduleTable) {
+                    contentObserver.observe(scheduleTable, {
+                        childList: true,
+                        subtree: true,
+                        characterData: true,
                     });
-                }, 150); // Reduced delay for better responsiveness
-            });
-        });
-        
-        // --- Clock Functions ---
-        function updateClock() {
-            const now = new Date();
-            
-            // Format time (12-hour format with AM/PM)
-            let hours = now.getHours();
-            const minutes = now.getMinutes().toString().padStart(2, '0');
-            const ampm = hours >= 12 ? 'PM' : 'AM';
-            hours = hours % 12;
-            hours = hours ? hours : 12; // Handle midnight (0 hours)
-            const timeString = `${hours}:${minutes} ${ampm}`;
-            
-            // Format date
-            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-            const dateString = now.toLocaleDateString('en-US', options);
-            
-            // Update DOM
-            document.getElementById('current-time').textContent = timeString;
-            document.getElementById('current-date').textContent = dateString;
-        }
-        
-        // --- Real-time Class Status Detection ---
-        function checkClassStatus(schedule) {
-            if (!schedule.length) return;
-            
-            const now = new Date();
-            const currentTime = now.getHours() * 60 + now.getMinutes(); // Convert to minutes
-            const currentDay = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][now.getDay()];
-            
-            // Get all unique members
-            const members = [...new Set(schedule.map(cls => cls.addedBy || 'Unknown'))];
-            
-            // Check status for each member
-            members.forEach(member => {
-                const memberClassesToday = schedule.filter(cls => 
-                    cls.addedBy === member && cls.day === currentDay
-                );
-                
-                if (memberClassesToday.length === 0) return;
-                
-                // Sort classes by start time
-                memberClassesToday.sort((a, b) => {
-                    const aTime = parseTimeToMinutes(a.startTime);
-                    const bTime = parseTimeToMinutes(b.startTime);
-                    return aTime - bTime;
+                }
+
+                // ResizeObserver to watch for container size changes
+                if (window.ResizeObserver) {
+                    const resizeObserver = new ResizeObserver((entries) => {
+                        entries.forEach((entry) => {
+                            const card =
+                                entry.target.closest(".class-card") ||
+                                entry.target.querySelector(".class-card");
+                            if (card) {
+                                // Debounce resize events
+                                clearTimeout(card._resizeTimeout);
+                                card._resizeTimeout = setTimeout(
+                                    () => fitCardText(card),
+                                    100,
+                                );
+                            }
+                        });
+                    });
+
+                    // Observe all class cards
+                    const observeCards = () => {
+                        document
+                            .querySelectorAll(".class-card")
+                            .forEach((card) => {
+                                resizeObserver.observe(card);
+                            });
+                    };
+
+                    // Initial observation and re-observe when new cards are added
+                    observeCards();
+
+                    // Re-observe periodically in case new cards are added
+                    setInterval(observeCards, 2000);
+                }
+            }
+
+            // --- App Initialization ---
+            document.addEventListener("DOMContentLoaded", async () => {
+                // Initialize Firebase first
+                await initializeFirebase();
+
+                // Initialize theme
+                initializeTheme();
+                document
+                    .getElementById("theme-toggle")
+                    .addEventListener("click", toggleTheme);
+
+                // Class list functionality removed
+
+                document.getElementById("user-name").value =
+                    localStorage.getItem("userName") || "";
+                const savedGroupCode = localStorage.getItem("groupCode");
+                if (savedGroupCode) {
+                    document.getElementById("group-code").value =
+                        savedGroupCode;
+                    joinGroup();
+                } else {
+                    showGroupStatus(
+                        "Enter your name and a group code to begin.",
+                        "blue",
+                    );
+                }
+                document.getElementById("add-update-btn").onclick = addClass;
+
+                // Initialize text fitting observers
+                initializeTextObservers();
+
+                // Initialize clock and status checking
+                updateClock();
+                setInterval(updateClock, 1000); // Update clock every second
+
+                // Check class status every minute
+                setInterval(() => {
+                    if (
+                        typeof window.currentSchedule !== "undefined" &&
+                        window.currentSchedule.length > 0
+                    ) {
+                        checkClassStatus(window.currentSchedule);
+                    }
+                }, 60000); // Check status every minute
+
+                // Add window resize handler for responsive table positioning and text fitting
+                let resizeTimeout;
+                window.addEventListener("resize", () => {
+                    // Debounce resize events to prevent excessive recalculations
+                    clearTimeout(resizeTimeout);
+                    resizeTimeout = setTimeout(() => {
+                        if (
+                            typeof window.currentSchedule !== "undefined" &&
+                            window.currentSchedule.length > 0
+                        ) {
+                            // Refresh the timetable with updated positioning
+                            updateScheduleTable(window.currentSchedule);
+                        }
+
+                        // Re-fit text for all class cards after resize
+                        document
+                            .querySelectorAll(".class-card")
+                            .forEach((card) => {
+                                fitCardText(card);
+                            });
+                    }, 150); // Reduced delay for better responsiveness
                 });
-                
-                // Check for classes starting soon (20 minutes before)
-                memberClassesToday.forEach(cls => {
+            });
+
+            // --- Clock Functions ---
+            function updateClock() {
+                const now = new Date();
+
+                // Format time (12-hour format with AM/PM)
+                let hours = now.getHours();
+                const minutes = now.getMinutes().toString().padStart(2, "0");
+                const ampm = hours >= 12 ? "PM" : "AM";
+                hours = hours % 12;
+                hours = hours ? hours : 12; // Handle midnight (0 hours)
+                const timeString = `${hours}:${minutes} ${ampm}`;
+
+                // Format date
+                const options = {
+                    weekday: "long",
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                };
+                const dateString = now.toLocaleDateString("en-US", options);
+
+                // Update DOM
+                document.getElementById("current-time").textContent =
+                    timeString;
+                document.getElementById("current-date").textContent =
+                    dateString;
+            }
+
+            // --- Real-time Class Status Detection ---
+            function checkClassStatus(schedule) {
+                if (!schedule.length) return;
+
+                const now = new Date();
+                const currentTime = now.getHours() * 60 + now.getMinutes(); // Convert to minutes
+                const currentDay = [
+                    "Sunday",
+                    "Monday",
+                    "Tuesday",
+                    "Wednesday",
+                    "Thursday",
+                    "Friday",
+                    "Saturday",
+                ][now.getDay()];
+
+                // Get all unique members
+                const members = [
+                    ...new Set(schedule.map((cls) => cls.addedBy || "Unknown")),
+                ];
+
+                // Check status for each member
+                members.forEach((member) => {
+                    const memberClassesToday = schedule.filter(
+                        (cls) =>
+                            cls.addedBy === member && cls.day === currentDay,
+                    );
+
+                    if (memberClassesToday.length === 0) return;
+
+                    // Sort classes by start time
+                    memberClassesToday.sort((a, b) => {
+                        const aTime = parseTimeToMinutes(a.startTime);
+                        const bTime = parseTimeToMinutes(b.startTime);
+                        return aTime - bTime;
+                    });
+
+                    // Check for classes starting soon (20 minutes before)
+                    memberClassesToday.forEach((cls) => {
+                        const startTime = parseTimeToMinutes(cls.startTime);
+                        const endTime = parseTimeToMinutes(cls.endTime);
+
+                        // Class starting in 20 minutes
+                        if (
+                            currentTime >= startTime - 20 &&
+                            currentTime < startTime
+                        ) {
+                            addActivityMessage(
+                                `${member} will be going to ${cls.location || "class"} for ${cls.subject} at ${formatTime(cls.startTime)}`,
+                            );
+                        }
+
+                        // Class ending now (within 2 minutes of end time)
+                        if (
+                            currentTime >= endTime - 2 &&
+                            currentTime <= endTime
+                        ) {
+                            // Add general class end message
+                            addActivityMessage(
+                                `${member} finished ${cls.subject} at ${cls.location || "class"}`,
+                            );
+
+                            // Check if this is the last class of the day
+                            const isLastClass = memberClassesToday.every(
+                                (c) => {
+                                    const cEndTime = parseTimeToMinutes(
+                                        c.endTime,
+                                    );
+                                    return cEndTime <= endTime;
+                                },
+                            );
+
+                            if (isLastClass) {
+                                addActivityMessage(
+                                    `${member} is returning to hostel`,
+                                );
+                            }
+                        }
+                    });
+                });
+            }
+
+            function parseTimeToMinutes(timeString) {
+                if (!timeString) return 0;
+                const [hours, minutes] = timeString.split(":").map(Number);
+                return hours * 60 + minutes;
+            }
+
+            function addActivityMessage(message) {
+                const activityList = document.getElementById(
+                    "recent-activity-list",
+                );
+
+                // Clear placeholder message if it exists
+                const placeholder = document.getElementById(
+                    "activity-placeholder",
+                );
+                if (placeholder) {
+                    placeholder.remove();
+                }
+
+                // Don't add duplicate messages
+                const existingMessages = Array.from(activityList.children).map(
+                    (child) => child.textContent,
+                );
+                if (
+                    existingMessages.some((existing) =>
+                        existing.includes(message),
+                    )
+                )
+                    return;
+
+                const activityDiv = document.createElement("div");
+                activityDiv.className =
+                    "notification bg-green-50 p-4 rounded-lg border-l-4 border-green-500";
+
+                const activityText = document.createElement("p");
+                activityText.className = "text-sm text-gray-900";
+                activityText.textContent = message;
+
+                const timeElement = document.createElement("p");
+                timeElement.className = "text-xs text-gray-500 mt-1";
+                timeElement.textContent = "just now";
+
+                activityDiv.appendChild(activityText);
+                activityDiv.appendChild(timeElement);
+
+                // Add to top of list
+                if (
+                    activityList.firstChild &&
+                    !activityList.firstChild.textContent.includes(
+                        "Join a group",
+                    )
+                ) {
+                    activityList.insertBefore(
+                        activityDiv,
+                        activityList.firstChild,
+                    );
+                } else {
+                    activityList.appendChild(activityDiv);
+                }
+            }
+
+            function getMemberCurrentStatus(schedule, memberName) {
+                if (!memberName) return "";
+
+                const now = new Date();
+                const currentTime = now.getHours() * 60 + now.getMinutes();
+                const currentDay = [
+                    "Sunday",
+                    "Monday",
+                    "Tuesday",
+                    "Wednesday",
+                    "Thursday",
+                    "Friday",
+                    "Saturday",
+                ][now.getDay()];
+
+                const memberClassesToday = schedule.filter(
+                    (cls) =>
+                        cls.addedBy === memberName && cls.day === currentDay,
+                );
+
+                if (memberClassesToday.length === 0) return "Hostel";
+
+                // Sort classes by start time
+                memberClassesToday.sort(
+                    (a, b) =>
+                        parseTimeToMinutes(a.startTime) -
+                        parseTimeToMinutes(b.startTime),
+                );
+
+                // Check if member is currently in class
+                const currentClass = memberClassesToday.find((cls) => {
                     const startTime = parseTimeToMinutes(cls.startTime);
                     const endTime = parseTimeToMinutes(cls.endTime);
-                    
-                    // Class starting in 20 minutes
-                    if (currentTime >= startTime - 20 && currentTime < startTime) {
-                        addActivityMessage(`${member} will be going to ${cls.location || 'class'} for ${cls.subject} at ${formatTime(cls.startTime)}`);
-                    }
-                    
-                    // Class ending now (within 2 minutes of end time)
-                    if (currentTime >= endTime - 2 && currentTime <= endTime) {
-                        // Add general class end message
-                        addActivityMessage(`${member} finished ${cls.subject} at ${cls.location || 'class'}`);
-                        
-                        // Check if this is the last class of the day
-                        const isLastClass = memberClassesToday.every(c => {
-                            const cEndTime = parseTimeToMinutes(c.endTime);
-                            return cEndTime <= endTime;
-                        });
-                        
-                        if (isLastClass) {
-                            addActivityMessage(`${member} is returning to hostel`);
-                        }
-                    }
+                    return currentTime >= startTime && currentTime <= endTime;
                 });
-            });
-        }
-        
-        function parseTimeToMinutes(timeString) {
-            if (!timeString) return 0;
-            const [hours, minutes] = timeString.split(':').map(Number);
-            return hours * 60 + minutes;
-        }
-        
-        function addActivityMessage(message) {
-            const activityList = document.getElementById('recent-activity-list');
-            
-            // Clear placeholder message if it exists
-            const placeholder = document.getElementById('activity-placeholder');
-            if (placeholder) {
-                placeholder.remove();
-            }
-            
-            // Don't add duplicate messages
-            const existingMessages = Array.from(activityList.children).map(child => child.textContent);
-            if (existingMessages.some(existing => existing.includes(message))) return;
-            
-            const activityDiv = document.createElement('div');
-            activityDiv.className = 'notification bg-green-50 p-4 rounded-lg border-l-4 border-green-500';
-            
-            const activityText = document.createElement('p');
-            activityText.className = 'text-sm text-gray-900';
-            activityText.textContent = message;
-            
-            const timeElement = document.createElement('p');
-            timeElement.className = 'text-xs text-gray-500 mt-1';
-            timeElement.textContent = 'just now';
-            
-            activityDiv.appendChild(activityText);
-            activityDiv.appendChild(timeElement);
-            
-            // Add to top of list
-            if (activityList.firstChild && !activityList.firstChild.textContent.includes('Join a group')) {
-                activityList.insertBefore(activityDiv, activityList.firstChild);
-            } else {
-                activityList.appendChild(activityDiv);
-            }
-        }
-        
-        function getMemberCurrentStatus(schedule, memberName) {
-            if (!memberName) return '';
-            
-            const now = new Date();
-            const currentTime = now.getHours() * 60 + now.getMinutes();
-            const currentDay = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][now.getDay()];
-            
-            const memberClassesToday = schedule.filter(cls => 
-                cls.addedBy === memberName && cls.day === currentDay
-            );
-            
-            if (memberClassesToday.length === 0) return 'Hostel';
-            
-            // Sort classes by start time
-            memberClassesToday.sort((a, b) => parseTimeToMinutes(a.startTime) - parseTimeToMinutes(b.startTime));
-            
-            // Check if member is currently in class
-            const currentClass = memberClassesToday.find(cls => {
-                const startTime = parseTimeToMinutes(cls.startTime);
-                const endTime = parseTimeToMinutes(cls.endTime);
-                return currentTime >= startTime && currentTime <= endTime;
-            });
-            
-            if (currentClass) return currentClass.location || 'In Class';
-            
-            // Check if all classes for today are done
-            const lastClassEndTime = Math.max(...memberClassesToday.map(cls => parseTimeToMinutes(cls.endTime)));
-            if (currentTime > lastClassEndTime) return 'Hostel';
-            
-            // Check gap between classes to determine Hostel or Idle status
-            for (let i = 0; i < memberClassesToday.length - 1; i++) {
-                const currentClassEnd = parseTimeToMinutes(memberClassesToday[i].endTime);
-                const nextClassStart = parseTimeToMinutes(memberClassesToday[i + 1].startTime);
-                
-                // If current time is between classes
-                if (currentTime > currentClassEnd && currentTime < nextClassStart) {
-                    const gapMinutes = nextClassStart - currentClassEnd;
-                    // If gap is more than 1.5 hours (90 minutes), show Hostel, else show Idle
-                    return gapMinutes > 90 ? 'Hostel' : 'Idle';
-                }
-            }
-            
-            // If before first class of the day
-            if (memberClassesToday.length > 0) {
-                const firstClassStart = parseTimeToMinutes(memberClassesToday[0].startTime);
-                if (currentTime < firstClassStart) return 'Hostel';
-            }
-            
-            return '';
-        }
-        
-        function getUserCurrentStatus(schedule) {
-            const currentUser = localStorage.getItem('userName');
-            return getMemberCurrentStatus(schedule, currentUser);
-        }
-        
-        // --- Click-to-Edit Functions ---
-        function editClassFromTimetable(id, day, startTime, endTime, location, subject) {
-            // Switch to timetable tab if not already there
-            switchTab('timetable');
-            
-            // Populate the form with class data
-            document.getElementById('class-day').value = day;
-            document.getElementById('start-time').value = startTime;
-            document.getElementById('end-time').value = endTime;
-            document.getElementById('class-location').value = location;
-            document.getElementById('subject-name').value = subject;
 
-            // Change button to update mode
-            const actionButton = document.getElementById('add-update-btn');
-            actionButton.innerHTML = '<i class="fas fa-save mr-2"></i>Update Class';
-            actionButton.onclick = () => updateClass(id);
-            
-            // Show and configure delete button
-            const deleteButton = document.getElementById('delete-btn');
-            deleteButton.classList.remove('hidden');
-            deleteButton.onclick = () => {
-                if (confirm('Are you sure you want to delete this class?')) {
-                    deleteClass(id);
-                    // Reset form after deletion
-                    resetFormToAddMode();
-                }
-            };
-            
-            // Scroll to form
-            document.getElementById('add-class-form').scrollIntoView({ behavior: 'smooth' });
-        }
+                if (currentClass) return currentClass.location || "In Class";
 
-        // --- Group Management ---
-        function joinGroup() {
-            const userName = document.getElementById('user-name').value.trim();
-            const groupCode = document.getElementById('group-code').value.trim();
-            if (!userName) { alert('Please enter your name first!'); return; }
-            if (!groupCode) { alert('Please enter a group code!'); return; }
+                // Check if all classes for today are done
+                const lastClassEndTime = Math.max(
+                    ...memberClassesToday.map((cls) =>
+                        parseTimeToMinutes(cls.endTime),
+                    ),
+                );
+                if (currentTime > lastClassEndTime) return "Hostel";
 
-            localStorage.setItem('userName', userName);
-            localStorage.setItem('groupCode', groupCode);
+                // Check gap between classes to determine Hostel or Idle status
+                for (let i = 0; i < memberClassesToday.length - 1; i++) {
+                    const currentClassEnd = parseTimeToMinutes(
+                        memberClassesToday[i].endTime,
+                    );
+                    const nextClassStart = parseTimeToMinutes(
+                        memberClassesToday[i + 1].startTime,
+                    );
 
-            if (!db) {
-                showGroupStatus('Firebase connection unavailable. Please check your internet connection.', 'red');
-                return;
-            }
-
-            try {
-                classesCollection = db.collection('groups').doc(groupCode).collection('classes');
-                listenToGroupChanges();
-                showGroupStatus(`You are connected to group: ${groupCode}`, 'green');
-                switchTab('tracker');
-            } catch (error) {
-                console.error('Error joining group:', error);
-                showGroupStatus('Error connecting to group. Please try again.', 'red');
-            }
-        }
-        
-        function listenToGroupChanges() {
-            if (unsubscribe) unsubscribe();
-            
-            unsubscribe = classesCollection.onSnapshot(snapshot => {
-                window.currentSchedule = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                // Update all parts of the UI that depend on schedule data
-                updateScheduleTable(window.currentSchedule);
-                updateTrackerTab(window.currentSchedule);
-                // Check class status immediately when data changes
-                checkClassStatus(window.currentSchedule);
-                
-                // Update group status to show successful connection
-                const groupCode = localStorage.getItem('groupCode');
-                showGroupStatus(`Connected to group: ${groupCode}`, 'green');
-            }, error => {
-                console.error("Error listening to group changes: ", error);
-                const errorMsg = error.code === 'unavailable' 
-                    ? 'Firebase is offline. App will work locally until connection is restored.'
-                    : `Error connecting to group: ${error.message}`;
-                showGroupStatus(errorMsg, 'red');
-            });
-        }
-        
-        function showGroupStatus(message, color) {
-            const statusDiv = document.getElementById('group-status');
-            statusDiv.textContent = message;
-            statusDiv.className = 'text-center mt-6 p-4 rounded-lg font-medium opacity-100 transition-opacity'; // Reset classes
-            if (color === 'green') statusDiv.classList.add('bg-green-100', 'text-green-800');
-            else if (color === 'red') statusDiv.classList.add('bg-red-100', 'text-red-800');
-            else statusDiv.classList.add('bg-gray-100', 'text-gray-700');
-        }
-
-        // --- Tab and UI Functions ---
-        function switchTab(tabName) {
-            document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.classList.remove('active', 'text-blue-600');
-                btn.classList.add('text-gray-500');
-            });
-            document.querySelector(`.tab-btn[data-tab="${tabName}"]`).classList.add('active', 'text-blue-600');
-            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
-            document.getElementById(tabName + '-tab').classList.remove('hidden');
-            
-            // Rebuild timetable when switching to timetable tab (to handle hidden measurement issues)
-            if (tabName === 'timetable' && typeof window.currentSchedule !== 'undefined') {
-                setTimeout(() => {
-                    updateScheduleTable(window.currentSchedule);
-                }, 50); // Small delay to ensure tab is visible
-            }
-        }
-        document.querySelectorAll('.tab-btn').forEach(button => {
-            button.addEventListener('click', () => switchTab(button.getAttribute('data-tab')));
-        });
-
-        // --- UI Update Functions ---
-        function updateTrackerTab(schedule) {
-            const membersList = document.getElementById('group-members-list');
-            const activityList = document.getElementById('recent-activity-list');
-            membersList.innerHTML = '';
-            activityList.innerHTML = '';
-
-            // Update Group Members
-            const members = [...new Set(schedule.map(cls => cls.addedBy || 'Unknown'))];
-            if (members.length === 0) {
-                membersList.innerHTML = '<p class="text-gray-500">Members will appear here as they add classes.</p>';
-            } else {
-                members.forEach(name => {
-                    const memberDiv = document.createElement('div');
-                    memberDiv.className = 'flex items-center justify-between p-3 bg-gray-50 rounded-lg';
-                    
-                    // Create left side with avatar and name
-                    const leftDiv = document.createElement('div');
-                    leftDiv.className = 'flex items-center';
-                    
-                    // Create avatar element safely
-                    const avatarDiv = document.createElement('div');
-                    avatarDiv.className = 'w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold';
-                    avatarDiv.textContent = name.charAt(0).toUpperCase();
-                    
-                    // Create name element safely
-                    const nameDiv = document.createElement('div');
-                    nameDiv.className = 'ml-3 font-medium text-gray-900';
-                    nameDiv.textContent = name;
-                    
-                    leftDiv.appendChild(avatarDiv);
-                    leftDiv.appendChild(nameDiv);
-                    
-                    // Get member status and create status tag
-                    const status = getMemberCurrentStatus(schedule, name);
-                    
-                    if (status) {
-                        const statusTag = document.createElement('span');
-                        if (status === 'Hostel') {
-                            statusTag.className = 'px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full font-medium';
-                        } else if (status === 'Idle') {
-                            statusTag.className = 'px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full font-medium';
-                        } else {
-                            statusTag.className = 'px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full font-medium';
-                        }
-                        statusTag.textContent = status;
-                        
-                        memberDiv.appendChild(leftDiv);
-                        memberDiv.appendChild(statusTag);
-                    } else {
-                        memberDiv.appendChild(leftDiv);
+                    // If current time is between classes
+                    if (
+                        currentTime > currentClassEnd &&
+                        currentTime < nextClassStart
+                    ) {
+                        const gapMinutes = nextClassStart - currentClassEnd;
+                        // If gap is more than 1.5 hours (90 minutes), show Hostel, else show Idle
+                        return gapMinutes > 90 ? "Hostel" : "Idle";
                     }
-                    
-                    membersList.appendChild(memberDiv);
-                });
+                }
+
+                // If before first class of the day
+                if (memberClassesToday.length > 0) {
+                    const firstClassStart = parseTimeToMinutes(
+                        memberClassesToday[0].startTime,
+                    );
+                    if (currentTime < firstClassStart) return "Hostel";
+                }
+
+                return "";
             }
 
-            // Update Recent Activity - Only show movement/location related activities, not class additions
-            // Initialize with placeholder if empty
-            if (activityList.children.length === 0) {
-                activityList.innerHTML = '<p class="text-gray-500" id="activity-placeholder">Activity updates will appear here when friends are moving between classes.</p>';
+            function getUserCurrentStatus(schedule) {
+                const currentUser = localStorage.getItem("userName");
+                return getMemberCurrentStatus(schedule, currentUser);
             }
-        }
-        
 
-        // --- Simple Lane Assignment for Grid Overlaps ---
-        function calculateLaneAssignments(dayClasses) {
-            if (!dayClasses || dayClasses.length === 0) {
-                return [];
-            }
-            
-            // Convert times to minutes and sort by start time
-            const classesWithMinutes = dayClasses.map(cls => ({
-                ...cls,
-                startMinutes: parseTimeToMinutes(cls.startTime),
-                endMinutes: parseTimeToMinutes(cls.endTime)
-            })).sort((a, b) => a.startMinutes - b.startMinutes);
-            
-            // Track end times for each lane
-            const lanes = [];
-            
-            classesWithMinutes.forEach(cls => {
-                // Find the first available lane (one where no class conflicts)
-                let assignedLane = 0;
-                while (assignedLane < lanes.length && lanes[assignedLane] > cls.startMinutes) {
-                    assignedLane++;
-                }
-                
-                // Assign this lane and update its end time
-                if (assignedLane >= lanes.length) {
-                    lanes.push(cls.endMinutes);
-                } else {
-                    lanes[assignedLane] = cls.endMinutes;
-                }
-                
-                cls.lane = assignedLane;
-            });
-            
-            return classesWithMinutes;
-        }
-        
-        // --- Find Time Slot Index ---
-        function findTimeSlotIndex(timeString, timeSlots) {
-            if (!timeString) return 0;
-            
-            const timeMinutes = parseTimeToMinutes(timeString);
-            
-            for (let i = 0; i < timeSlots.length; i++) {
-                const slotMinutes = parseTimeToMinutes(timeSlots[i]);
-                const nextSlotMinutes = i + 1 < timeSlots.length ? 
-                    parseTimeToMinutes(timeSlots[i + 1]) : slotMinutes + 95;
-                
-                if (timeMinutes >= slotMinutes && timeMinutes < nextSlotMinutes) {
-                    return i;
-                }
-            }
-            
-            // If time is before first slot or after last slot
-            if (timeMinutes < parseTimeToMinutes(timeSlots[0])) {
-                return 0;
-            }
-            return timeSlots.length - 1;
-        }
-        
-        // --- Find End Time Slot Index for Spanning (Exclusive) ---
-        function findEndSlotIndex(timeString, timeSlots) {
-            if (!timeString) return 1;
-            
-            const timeMinutes = parseTimeToMinutes(timeString);
-            
-            // Find which slot the end time falls into
-            for (let i = 0; i < timeSlots.length; i++) {
-                const slotMinutes = parseTimeToMinutes(timeSlots[i]);
-                const nextSlotMinutes = i + 1 < timeSlots.length ? 
-                    parseTimeToMinutes(timeSlots[i + 1]) : slotMinutes + 95;
-                
-                // If end time is within this slot, return the next slot boundary (exclusive)
-                if (timeMinutes > slotMinutes && timeMinutes <= nextSlotMinutes) {
-                    return i + 2; // Exclusive end
-                }
-            }
-            
-            // If time is exactly at a slot start, use that slot
-            if (timeMinutes <= parseTimeToMinutes(timeSlots[0])) {
-                return 1;
-            }
-            
-            // If time is after all slots, span to the end
-            return timeSlots.length + 1;
-        }
-        
-        // --- Simplified Positioning System ---
-        function calculateClassPosition(cls, lane, timeSlots) {
-            const cardHeight = 70;
-            const verticalGap = 4;
-            const horizontalPadding = 2;
-            
-            // Calculate top offset: lane × (cardHeight + verticalGap)
-            const top = lane * (cardHeight + verticalGap) + 4;
-            
-            // Convert start/end times to minutes
-            const classStartMinutes = parseTimeToMinutes(cls.startTime);
-            const classEndMinutes = parseTimeToMinutes(cls.endTime);
-            
-            // Find the exact time slot that the class starts in
-            let startSlotIndex = -1;
-            for (let i = 0; i < timeSlots.length; i++) {
-                const slotStartMinutes = parseTimeToMinutes(timeSlots[i]);
-                const nextSlotMinutes = i + 1 < timeSlots.length ? parseTimeToMinutes(timeSlots[i + 1]) : slotStartMinutes + 95;
-                
-                if (classStartMinutes >= slotStartMinutes && classStartMinutes < nextSlotMinutes) {
-                    startSlotIndex = i;
-                    break;
-                }
-            }
-            
-            // If class starts before first slot, put it in first slot
-            if (startSlotIndex === -1) {
-                if (classStartMinutes < parseTimeToMinutes(timeSlots[0])) {
-                    startSlotIndex = 0;
-                } else {
-                    // Class starts after last slot, put it in last slot
-                    startSlotIndex = timeSlots.length - 1;
-                }
-            }
-            
-            // Position class exactly within its time slot cell
-            const left = horizontalPadding; // Relative to the cell, not absolute
-            const width = 100 - (horizontalPadding * 2); // Fill most of the cell width (percentage)
-            
-            return {
-                left: left,
-                width: width,
-                top: top,
-                slotIndex: startSlotIndex
-            };
-        }
+            // --- Click-to-Edit Functions ---
+            function editClassFromTimetable(
+                id,
+                day,
+                startTime,
+                endTime,
+                location,
+                subject,
+            ) {
+                // Switch to timetable tab if not already there
+                switchTab("timetable");
 
-        // --- Time Scale and Positioning System ---
-        function buildTimeScale() {
-            const timeSlots = generateTimeSlots();
-            const headerCells = document.querySelectorAll('.schedule-table thead th:not(:first-child)');
-            const tableContainer = document.querySelector('.schedule-table');
-            const stickyDayCell = document.querySelector('.schedule-table thead th:first-child');
-            
-            if (!tableContainer || headerCells.length === 0) {
-                return [];
-            }
-            
-            const tableRect = tableContainer.getBoundingClientRect();
-            const dayColumnWidth = stickyDayCell ? stickyDayCell.getBoundingClientRect().width : 0;
-            const scale = [];
-            
-            // Build time breakpoints from header positions, accounting for sticky Day column
-            timeSlots.forEach((timeSlot, index) => {
-                const minutes = parseTimeToMinutes(timeSlot);
-                const headerCell = headerCells[index];
-                if (headerCell) {
-                    const rect = headerCell.getBoundingClientRect();
-                    // Make coordinates relative to the time slots area (excluding sticky Day column)
-                    // This ensures classes align exactly with their time slot columns
-                    scale.push({ 
-                        minutes: minutes, 
-                        x: rect.left - tableRect.left - dayColumnWidth,
-                        width: rect.width
-                    });
-                }
-            });
-            
-            // Sort by minutes to ensure proper ordering
-            scale.sort((a, b) => a.minutes - b.minutes);
-            
-            return scale;
-        }
-        
-        function mapMinutesToX(targetMinutes, timeScale) {
-            if (!timeScale.length) return 0;
-            
-            // Find exact match first (for precise alignment with slot start times)
-            const exactMatch = timeScale.find(slot => slot.minutes === targetMinutes);
-            if (exactMatch) {
-                return exactMatch.x; // Exact alignment with time slot column
-            }
-            
-            // Find the segment containing the target time
-            for (let i = 0; i < timeScale.length - 1; i++) {
-                const current = timeScale[i];
-                const next = timeScale[i + 1];
-                
-                if (targetMinutes >= current.minutes && targetMinutes < next.minutes) {
-                    // Linear interpolation within the segment for precise positioning
-                    const progress = (targetMinutes - current.minutes) / (next.minutes - current.minutes);
-                    return current.x + (current.width * progress);
-                }
-            }
-            
-            // Handle edge cases
-            if (targetMinutes < timeScale[0].minutes) {
-                // Before first slot - align with first slot but indicate it's early
-                return Math.max(0, timeScale[0].x - 10);
-            }
-            
-            // After last slot
-            const lastSlot = timeScale[timeScale.length - 1];
-            if (targetMinutes >= lastSlot.minutes) {
-                const extraMinutes = targetMinutes - lastSlot.minutes;
-                const avgSlotDuration = timeScale.length > 1 ? 
-                    (timeScale[1].minutes - timeScale[0].minutes) : 95;
-                const extraProgress = Math.min(extraMinutes / avgSlotDuration, 1); // Cap at 1 to prevent overflow
-                return lastSlot.x + (lastSlot.width * extraProgress);
-            }
-            
-            return lastSlot.x + lastSlot.width;
-        }
-        
-        // --- Enhanced Collision Detection ---
-        function calculateLaneAssignments(dayClasses) {
-            if (!dayClasses || dayClasses.length === 0) {
-                return [];
-            }
-            
-            // Apply time snapping and convert times to minutes, then sort by start time
-            const classesWithMinutes = dayClasses.map(cls => {
-                // Snap start time to nearest time slot
-                const snappedStartTime = snapTimeToSlot(cls.startTime);
-                const snappedStartMinutes = parseTimeToMinutes(snappedStartTime);
-                
-                // Calculate duration to maintain class length
-                const originalDuration = parseTimeToMinutes(cls.endTime) - parseTimeToMinutes(cls.startTime);
-                const snappedEndMinutes = snappedStartMinutes + originalDuration;
-                
-                return {
-                    ...cls,
-                    startMinutes: snappedStartMinutes,
-                    endMinutes: snappedEndMinutes,
-                    originalStartTime: cls.startTime,
-                    originalEndTime: cls.endTime
+                // Populate the form with class data
+                document.getElementById("class-day").value = day;
+                document.getElementById("start-time").value = startTime;
+                document.getElementById("end-time").value = endTime;
+                document.getElementById("class-location").value = location;
+                document.getElementById("subject-name").value = subject;
+
+                // Change button to update mode
+                const actionButton = document.getElementById("add-update-btn");
+                actionButton.innerHTML =
+                    '<i class="fas fa-save mr-2"></i>Update Class';
+                actionButton.onclick = () => updateClass(id);
+
+                // Show and configure delete button
+                const deleteButton = document.getElementById("delete-btn");
+                deleteButton.classList.remove("hidden");
+                deleteButton.onclick = () => {
+                    if (
+                        confirm("Are you sure you want to delete this class?")
+                    ) {
+                        deleteClass(id);
+                        // Reset form after deletion
+                        resetFormToAddMode();
+                    }
                 };
-            }).sort((a, b) => a.startMinutes - b.startMinutes);
-            
-            // Track end times for each lane
-            const lanes = [];
-            
-            classesWithMinutes.forEach(cls => {
-                // Find the first available lane (one where no class conflicts)
-                let assignedLane = 0;
-                while (assignedLane < lanes.length && lanes[assignedLane] > cls.startMinutes) {
-                    assignedLane++;
+
+                // Scroll to form
+                document
+                    .getElementById("add-class-form")
+                    .scrollIntoView({ behavior: "smooth" });
+            }
+
+            // --- Group Management ---
+            function joinGroup() {
+                const userName = document
+                    .getElementById("user-name")
+                    .value.trim();
+                const groupCode = document
+                    .getElementById("group-code")
+                    .value.trim();
+                if (!userName) {
+                    alert("Please enter your name first!");
+                    return;
                 }
-                
-                // Assign this lane and update its end time
-                if (assignedLane >= lanes.length) {
-                    lanes.push(cls.endMinutes);
-                } else {
-                    lanes[assignedLane] = cls.endMinutes;
+                if (!groupCode) {
+                    alert("Please enter a group code!");
+                    return;
                 }
-                
-                cls.lane = assignedLane;
-                cls.totalLanes = lanes.length;
-            });
-            
-            // Update total lanes for all classes
-            classesWithMinutes.forEach(cls => {
-                cls.totalLanes = lanes.length;
-            });
-            
-            return classesWithMinutes;
-        }
-        
-        // --- New Schedule Table Renderer ---
-        function updateScheduleTable(schedule) {
-            const tableBody = document.getElementById('schedule-table');
-            tableBody.innerHTML = '';
-            
-            const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
-            const currentUser = localStorage.getItem('userName');
-            
-            // Wait for the table to be rendered before building time scale
-            setTimeout(() => {
-                const timeScale = buildTimeScale();
-                
-                days.forEach(day => {
-                    const row = document.createElement('tr');
-                    row.className = 'hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors';
-                    
-                    // Day name cell (sticky)
-                    const dayCell = document.createElement('td');
-                    dayCell.className = 'p-3 border-t font-semibold text-gray-800 dark:text-gray-200 bg-white dark:bg-slate-800 sticky left-0 z-10 min-w-20 border-r border-gray-200 dark:border-gray-600';
-                    dayCell.style.verticalAlign = 'top';
-                    dayCell.textContent = day;
-                    row.appendChild(dayCell);
-                    
-                    // Single spanning cell for the overlay container
-                    const overlayCell = document.createElement('td');
-                    overlayCell.className = 'border-t border-gray-200 dark:border-gray-600 p-0 relative';
-                    overlayCell.colSpan = 7; // Span all time slot columns
-                    overlayCell.style.verticalAlign = 'top';
-                    
-                    // Get classes for this day and calculate lanes
-                    const dayClasses = schedule.filter(cls => cls.day === day);
-                    const classesWithLanes = calculateLaneAssignments(dayClasses);
-                    const maxLanes = classesWithLanes.length > 0 ? 
-                        Math.max(...classesWithLanes.map(cls => cls.totalLanes || 1)) : 1;
-                    
-                    // Create overlay container
-                    const overlay = document.createElement('div');
-                    overlay.className = 'absolute inset-0 overflow-hidden';
-                    overlay.style.height = `${Math.max(80, maxLanes * 65 + 10)}px`;
-                    overlay.style.minHeight = '80px';
-                    
-                    // Render each class as absolutely positioned element
-                    classesWithLanes.forEach(cls => {
-                        const classDiv = renderClassCard(cls, timeScale, currentUser);
-                        overlay.appendChild(classDiv);
-                    });
-                    
-                    // Set cell height to match overlay
-                    overlayCell.style.height = overlay.style.height;
-                    
-                    overlayCell.appendChild(overlay);
-                    row.appendChild(overlayCell);
-                    tableBody.appendChild(row);
+
+                localStorage.setItem("userName", userName);
+                localStorage.setItem("groupCode", groupCode);
+
+                if (!db) {
+                    showGroupStatus(
+                        "Firebase connection unavailable. Please check your internet connection.",
+                        "red",
+                    );
+                    return;
+                }
+
+                try {
+                    classesCollection = db
+                        .collection("groups")
+                        .doc(groupCode)
+                        .collection("classes");
+                    listenToGroupChanges();
+                    showGroupStatus(
+                        `You are connected to group: ${groupCode}`,
+                        "green",
+                    );
+                    switchTab("tracker");
+                } catch (error) {
+                    console.error("Error joining group:", error);
+                    showGroupStatus(
+                        "Error connecting to group. Please try again.",
+                        "red",
+                    );
+                }
+            }
+
+            function listenToGroupChanges() {
+                if (unsubscribe) unsubscribe();
+
+                unsubscribe = classesCollection.onSnapshot(
+                    (snapshot) => {
+                        window.currentSchedule = snapshot.docs.map((doc) => ({
+                            id: doc.id,
+                            ...doc.data(),
+                        }));
+                        // Update all parts of the UI that depend on schedule data
+                        updateScheduleTable(window.currentSchedule);
+                        updateTrackerTab(window.currentSchedule);
+                        // Check class status immediately when data changes
+                        checkClassStatus(window.currentSchedule);
+
+                        // Update group status to show successful connection
+                        const groupCode = localStorage.getItem("groupCode");
+                        showGroupStatus(
+                            `Connected to group: ${groupCode}`,
+                            "green",
+                        );
+                    },
+                    (error) => {
+                        console.error(
+                            "Error listening to group changes: ",
+                            error,
+                        );
+                        const errorMsg =
+                            error.code === "unavailable"
+                                ? "Firebase is offline. App will work locally until connection is restored."
+                                : `Error connecting to group: ${error.message}`;
+                        showGroupStatus(errorMsg, "red");
+                    },
+                );
+            }
+
+            function showGroupStatus(message, color) {
+                const statusDiv = document.getElementById("group-status");
+                statusDiv.textContent = message;
+                statusDiv.className =
+                    "text-center mt-6 p-4 rounded-lg font-medium opacity-100 transition-opacity"; // Reset classes
+                if (color === "green")
+                    statusDiv.classList.add("bg-green-100", "text-green-800");
+                else if (color === "red")
+                    statusDiv.classList.add("bg-red-100", "text-red-800");
+                else statusDiv.classList.add("bg-gray-100", "text-gray-700");
+            }
+
+            // --- Tab and UI Functions ---
+            function switchTab(tabName) {
+                document.querySelectorAll(".tab-btn").forEach((btn) => {
+                    btn.classList.remove("active", "text-blue-600");
+                    btn.classList.add("text-gray-500");
                 });
-                
-            }, 10); // Small delay to ensure table headers are rendered
-        }
-        
-        // --- Class Card Renderer ---
-        function renderClassCard(cls, timeScale, currentUser) {
-            const classDiv = document.createElement('div');
-            
-            // Calculate precise positioning for exact alignment with time slots
-            const startX = mapMinutesToX(cls.startMinutes, timeScale);
-            const endX = mapMinutesToX(cls.endMinutes, timeScale);
-            const width = Math.max(endX - startX, 80); // Minimum width of 80px for readability
-            
-            // Lane-based vertical positioning
-            const laneHeight = 60;
-            const laneGap = 5;
-            const top = (cls.lane || 0) * (laneHeight + laneGap) + 5;
-            
-            // Apply absolute positioning within overlay container
-            classDiv.style.position = 'absolute';
-            classDiv.style.left = `${Math.max(0, startX)}px`;
-            classDiv.style.width = `${width}px`;
-            classDiv.style.top = `${top}px`;
-            classDiv.style.height = `${laneHeight}px`;
-            classDiv.style.zIndex = '10';
-            
-            // Styling
-            const isCurrentUser = cls.addedBy === currentUser;
-            const baseClasses = 'border rounded-lg p-2 cursor-pointer transition-all overflow-hidden shadow-sm class-card flex flex-col justify-center';
-            
-            if (isCurrentUser) {
-                classDiv.className = `${baseClasses} bg-green-100 dark:bg-green-900 border-green-300 dark:border-green-600 hover:bg-green-200 dark:hover:bg-green-800`;
-            } else {
-                classDiv.className = `${baseClasses} bg-blue-100 dark:bg-blue-900 border-blue-300 dark:border-blue-600 hover:bg-blue-200 dark:hover:bg-blue-800`;
-            }
-            
-            // Click handler and tooltip - use original times for display
-            const displayStartTime = cls.originalStartTime || cls.startTime;
-            const displayEndTime = cls.originalEndTime || cls.endTime;
-            
-            if (isCurrentUser) {
-                classDiv.onclick = () => editClassFromTimetable(cls.id, cls.day, displayStartTime, displayEndTime, cls.location, cls.subject);
-                classDiv.title = `Click to edit: ${cls.subject} • ${cls.location || 'TBA'} • ${formatTime(displayStartTime)}–${formatTime(displayEndTime)}`;
-            } else {
-                classDiv.title = `${cls.subject} • ${cls.location || 'TBA'} • ${formatTime(displayStartTime)}–${formatTime(displayEndTime)} (Added by ${cls.addedBy})`;
-            }
-            
-            // Content with proper font hierarchy
-            const contentDiv = document.createElement('div');
-            contentDiv.className = 'text-center flex flex-col justify-center h-full px-1';
-            
-            // User name (Name > Subject=Location=Time hierarchy)
-            const addedByDiv = document.createElement('div');
-            addedByDiv.className = isCurrentUser 
-                ? 'text-green-800 dark:text-green-200 font-bold class-card-name mb-1' 
-                : 'text-blue-800 dark:text-blue-200 font-bold class-card-name mb-1';
-            addedByDiv.textContent = (cls.addedBy || 'Unknown').length > 10 
-                ? (cls.addedBy || 'Unknown').substring(0, 10) + '...' 
-                : (cls.addedBy || 'Unknown');
-            
-            // Subject name (smaller than name, same as location/time)
-            const subjectDiv = document.createElement('div');
-            subjectDiv.className = isCurrentUser 
-                ? 'text-green-900 dark:text-green-100 font-semibold class-card-details mb-1' 
-                : 'text-blue-900 dark:text-blue-100 font-semibold class-card-details mb-1';
-            subjectDiv.textContent = cls.subject?.length > 15 
-                ? cls.subject.substring(0, 15) + '...' 
-                : cls.subject || 'Untitled';
-            
-            // Location (same size as subject and time)
-            const locationDiv = document.createElement('div');
-            locationDiv.className = isCurrentUser 
-                ? 'text-green-700 dark:text-green-300 class-card-details mb-1' 
-                : 'text-blue-700 dark:text-blue-300 class-card-details mb-1';
-            locationDiv.textContent = cls.location || 'TBA';
-            
-            // Time (same size as subject and location) - use original times for display
-            const timeDiv = document.createElement('div');
-            timeDiv.className = isCurrentUser 
-                ? 'text-green-600 dark:text-green-400 class-card-details' 
-                : 'text-blue-600 dark:text-blue-400 class-card-details';
-            timeDiv.textContent = `${formatTime(displayStartTime)}–${formatTime(displayEndTime)}`;
-            
-            contentDiv.appendChild(addedByDiv);
-            contentDiv.appendChild(subjectDiv);
-            contentDiv.appendChild(locationDiv);
-            contentDiv.appendChild(timeDiv);
-            classDiv.appendChild(contentDiv);
-            
-            return classDiv;
-        }
-        
-        // Time snapping function - snaps time to nearest time slot start time
-        function snapTimeToSlot(timeString) {
-            const timeSlots = generateTimeSlots();
-            const targetMinutes = parseTimeToMinutes(timeString);
-            
-            let closestSlot = timeSlots[0];
-            let minDifference = Math.abs(targetMinutes - parseTimeToMinutes(timeSlots[0]));
-            
-            // Find the closest time slot start time
-            for (let i = 1; i < timeSlots.length; i++) {
-                const slotMinutes = parseTimeToMinutes(timeSlots[i]);
-                const difference = Math.abs(targetMinutes - slotMinutes);
-                
-                if (difference < minDifference) {
-                    minDifference = difference;
-                    closestSlot = timeSlots[i];
+                document
+                    .querySelector(`.tab-btn[data-tab="${tabName}"]`)
+                    .classList.add("active", "text-blue-600");
+                document
+                    .querySelectorAll(".tab-content")
+                    .forEach((tab) => tab.classList.add("hidden"));
+                document
+                    .getElementById(tabName + "-tab")
+                    .classList.remove("hidden");
+
+                // Rebuild timetable when switching to timetable tab (to handle hidden measurement issues)
+                if (
+                    tabName === "timetable" &&
+                    typeof window.currentSchedule !== "undefined"
+                ) {
+                    setTimeout(() => {
+                        updateScheduleTable(window.currentSchedule);
+                    }, 50); // Small delay to ensure tab is visible
                 }
             }
-            
-            return closestSlot;
-        }
+            document.querySelectorAll(".tab-btn").forEach((button) => {
+                button.addEventListener("click", () =>
+                    switchTab(button.getAttribute("data-tab")),
+                );
+            });
 
-        // Function to convert minutes back to time string
-        function minutesToTimeString(minutes) {
-            const hours = Math.floor(minutes / 60);
-            const mins = minutes % 60;
-            return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
-        }
+            // --- UI Update Functions ---
+            function updateTrackerTab(schedule) {
+                const membersList =
+                    document.getElementById("group-members-list");
+                const activityList = document.getElementById(
+                    "recent-activity-list",
+                );
+                membersList.innerHTML = "";
+                activityList.innerHTML = "";
 
-        // Helper function to check if any class overlaps with a time slot
-        function hasClassInSlot(dayClasses, slotStart, slotEnd) {
-            return dayClasses.some(cls => {
+                // Update Group Members
+                const members = [
+                    ...new Set(schedule.map((cls) => cls.addedBy || "Unknown")),
+                ];
+                if (members.length === 0) {
+                    membersList.innerHTML =
+                        '<p class="text-gray-500">Members will appear here as they add classes.</p>';
+                } else {
+                    members.forEach((name) => {
+                        const memberDiv = document.createElement("div");
+                        memberDiv.className =
+                            "flex items-center justify-between p-3 bg-gray-50 rounded-lg";
+
+                        // Create left side with avatar and name
+                        const leftDiv = document.createElement("div");
+                        leftDiv.className = "flex items-center";
+
+                        // Create avatar element safely
+                        const avatarDiv = document.createElement("div");
+                        avatarDiv.className =
+                            "w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold";
+                        avatarDiv.textContent = name.charAt(0).toUpperCase();
+
+                        // Create name element safely
+                        const nameDiv = document.createElement("div");
+                        nameDiv.className = "ml-3 font-medium text-gray-900";
+                        nameDiv.textContent = name;
+
+                        leftDiv.appendChild(avatarDiv);
+                        leftDiv.appendChild(nameDiv);
+
+                        // Get member status and create status tag
+                        const status = getMemberCurrentStatus(schedule, name);
+
+                        if (status) {
+                            const statusTag = document.createElement("span");
+                            if (status === "Hostel") {
+                                statusTag.className =
+                                    "px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full font-medium";
+                            } else if (status === "Idle") {
+                                statusTag.className =
+                                    "px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full font-medium";
+                            } else {
+                                statusTag.className =
+                                    "px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full font-medium";
+                            }
+                            statusTag.textContent = status;
+
+                            memberDiv.appendChild(leftDiv);
+                            memberDiv.appendChild(statusTag);
+                        } else {
+                            memberDiv.appendChild(leftDiv);
+                        }
+
+                        membersList.appendChild(memberDiv);
+                    });
+                }
+
+                // Update Recent Activity - Only show movement/location related activities, not class additions
+                // Initialize with placeholder if empty
+                if (activityList.children.length === 0) {
+                    activityList.innerHTML =
+                        '<p class="text-gray-500" id="activity-placeholder">Activity updates will appear here when friends are moving between classes.</p>';
+                }
+            }
+
+            // --- Simple Lane Assignment for Grid Overlaps ---
+            function calculateLaneAssignments(dayClasses) {
+                if (!dayClasses || dayClasses.length === 0) {
+                    return [];
+                }
+
+                // Convert times to minutes and sort by start time
+                const classesWithMinutes = dayClasses
+                    .map((cls) => ({
+                        ...cls,
+                        startMinutes: parseTimeToMinutes(cls.startTime),
+                        endMinutes: parseTimeToMinutes(cls.endTime),
+                    }))
+                    .sort((a, b) => a.startMinutes - b.startMinutes);
+
+                // Track end times for each lane
+                const lanes = [];
+
+                classesWithMinutes.forEach((cls) => {
+                    // Find the first available lane (one where no class conflicts)
+                    let assignedLane = 0;
+                    while (
+                        assignedLane < lanes.length &&
+                        lanes[assignedLane] > cls.startMinutes
+                    ) {
+                        assignedLane++;
+                    }
+
+                    // Assign this lane and update its end time
+                    if (assignedLane >= lanes.length) {
+                        lanes.push(cls.endMinutes);
+                    } else {
+                        lanes[assignedLane] = cls.endMinutes;
+                    }
+
+                    cls.lane = assignedLane;
+                });
+
+                return classesWithMinutes;
+            }
+
+            // --- Find Time Slot Index ---
+            function findTimeSlotIndex(timeString, timeSlots) {
+                if (!timeString) return 0;
+
+                const timeMinutes = parseTimeToMinutes(timeString);
+
+                for (let i = 0; i < timeSlots.length; i++) {
+                    const slotMinutes = parseTimeToMinutes(timeSlots[i]);
+                    const nextSlotMinutes =
+                        i + 1 < timeSlots.length
+                            ? parseTimeToMinutes(timeSlots[i + 1])
+                            : slotMinutes + 95;
+
+                    if (
+                        timeMinutes >= slotMinutes &&
+                        timeMinutes < nextSlotMinutes
+                    ) {
+                        return i;
+                    }
+                }
+
+                // If time is before first slot or after last slot
+                if (timeMinutes < parseTimeToMinutes(timeSlots[0])) {
+                    return 0;
+                }
+                return timeSlots.length - 1;
+            }
+
+            // --- Find End Time Slot Index for Spanning (Exclusive) ---
+            function findEndSlotIndex(timeString, timeSlots) {
+                if (!timeString) return 1;
+
+                const timeMinutes = parseTimeToMinutes(timeString);
+
+                // Find which slot the end time falls into
+                for (let i = 0; i < timeSlots.length; i++) {
+                    const slotMinutes = parseTimeToMinutes(timeSlots[i]);
+                    const nextSlotMinutes =
+                        i + 1 < timeSlots.length
+                            ? parseTimeToMinutes(timeSlots[i + 1])
+                            : slotMinutes + 95;
+
+                    // If end time is within this slot, return the next slot boundary (exclusive)
+                    if (
+                        timeMinutes > slotMinutes &&
+                        timeMinutes <= nextSlotMinutes
+                    ) {
+                        return i + 2; // Exclusive end
+                    }
+                }
+
+                // If time is exactly at a slot start, use that slot
+                if (timeMinutes <= parseTimeToMinutes(timeSlots[0])) {
+                    return 1;
+                }
+
+                // If time is after all slots, span to the end
+                return timeSlots.length + 1;
+            }
+
+            // --- Simplified Positioning System ---
+            function calculateClassPosition(cls, lane, timeSlots) {
+                const cardHeight = 70;
+                const verticalGap = 4;
+                const horizontalPadding = 2;
+
+                // Calculate top offset: lane × (cardHeight + verticalGap)
+                const top = lane * (cardHeight + verticalGap) + 4;
+
+                // Convert start/end times to minutes
                 const classStartMinutes = parseTimeToMinutes(cls.startTime);
                 const classEndMinutes = parseTimeToMinutes(cls.endTime);
-                return (classStartMinutes < slotEnd && classEndMinutes > slotStart);
-            });
-        }
 
-        // --- Firestore CRUD Functions ---
-        function addClass() {
-            if (!classesCollection) { alert("Please join a group before adding a class."); return; }
-            const newClass = {
-                day: document.getElementById('class-day').value,
-                startTime: document.getElementById('start-time').value,
-                endTime: document.getElementById('end-time').value,
-                location: document.getElementById('class-location').value,
-                subject: document.getElementById('subject-name').value.trim(),
-                addedBy: localStorage.getItem('userName') || 'Anonymous',
-                createdAt: firebase.firestore.FieldValue.serverTimestamp() // For activity feed
-            };
-            if (!newClass.subject || !newClass.startTime || !newClass.endTime) { alert('Please fill in required fields.'); return; }
-            classesCollection.add(newClass)
-                .then(() => document.getElementById('add-class-form').reset())
-                .catch(error => console.error("Error adding document: ", error));
-        }
+                // Find the exact time slot that the class starts in
+                let startSlotIndex = -1;
+                for (let i = 0; i < timeSlots.length; i++) {
+                    const slotStartMinutes = parseTimeToMinutes(timeSlots[i]);
+                    const nextSlotMinutes =
+                        i + 1 < timeSlots.length
+                            ? parseTimeToMinutes(timeSlots[i + 1])
+                            : slotStartMinutes + 95;
 
-        function editClass(id, day, startTime, endTime, location, subject) {
-            document.getElementById('class-day').value = day;
-            document.getElementById('start-time').value = startTime;
-            document.getElementById('end-time').value = endTime;
-            document.getElementById('class-location').value = location;
-            document.getElementById('subject-name').value = subject;
+                    if (
+                        classStartMinutes >= slotStartMinutes &&
+                        classStartMinutes < nextSlotMinutes
+                    ) {
+                        startSlotIndex = i;
+                        break;
+                    }
+                }
 
-            const actionButton = document.getElementById('add-update-btn');
-            actionButton.innerHTML = '<i class="fas fa-save mr-2"></i>Update Class';
-            actionButton.onclick = () => updateClass(id);
-        }
+                // If class starts before first slot, put it in first slot
+                if (startSlotIndex === -1) {
+                    if (classStartMinutes < parseTimeToMinutes(timeSlots[0])) {
+                        startSlotIndex = 0;
+                    } else {
+                        // Class starts after last slot, put it in last slot
+                        startSlotIndex = timeSlots.length - 1;
+                    }
+                }
 
-        function updateClass(id) {
-            if (!classesCollection) return;
-            const updatedClass = {
-                day: document.getElementById('class-day').value,
-                startTime: document.getElementById('start-time').value,
-                endTime: document.getElementById('end-time').value,
-                location: document.getElementById('class-location').value,
-                subject: document.getElementById('subject-name').value.trim(),
-                addedBy: localStorage.getItem('userName') || 'Anonymous' // Keep user tag
-            };
-            classesCollection.doc(id).update(updatedClass)
-                .then(() => {
-                    document.getElementById('add-class-form').reset();
-                    resetFormToAddMode();
-                })
-                .catch(error => console.error("Error updating document: ", error));
-        }
-        
-        function resetFormToAddMode() {
-            // Reset the main action button to "Add Class" mode
-            const actionButton = document.getElementById('add-update-btn');
-            actionButton.innerHTML = '<i class="fas fa-plus mr-2"></i>Add Class';
-            actionButton.onclick = addClass;
-            
-            // Hide the delete button
-            const deleteButton = document.getElementById('delete-btn');
-            deleteButton.classList.add('hidden');
-            deleteButton.onclick = null;
-            
-            // Clear all form inputs to prevent lingering edit context
-            document.getElementById('class-day').selectedIndex = 0; // Reset to first option (Monday)
-            document.getElementById('start-time').value = '';
-            document.getElementById('end-time').value = '';
-            document.getElementById('class-location').selectedIndex = 0; // Reset to first option (AB-1)
-            document.getElementById('subject-name').value = '';
-        }
+                // Position class exactly within its time slot cell
+                const left = horizontalPadding; // Relative to the cell, not absolute
+                const width = 100 - horizontalPadding * 2; // Fill most of the cell width (percentage)
 
-        function deleteClass(id) {
-            if (!classesCollection) return;
-            if (confirm('Are you sure you want to delete this class?')) {
-                classesCollection.doc(id).delete().catch(error => console.error("Error removing document: ", error));
+                return {
+                    left: left,
+                    width: width,
+                    top: top,
+                    slotIndex: startSlotIndex,
+                };
             }
-        }
 
-        // --- Helper Functions ---
-        function formatTime(timeString) {
-            if (!timeString) return '';
-            const [h, m] = timeString.split(':');
-            return `${(h % 12 || 12)}:${m} ${h >= 12 ? 'PM' : 'AM'}`;
-        }
-        function generateTimeSlots() {
-            return ['08:30', '10:05', '11:40', '13:15', '14:50', '16:25', '18:00'];
-        }
-        function isTimeInSlot(currentTime, startTime, endTime) {
-            return currentTime >= startTime && currentTime < endTime;
-        }
-        function formatTimeAgo(date) {
-            const seconds = Math.floor((new Date() - date) / 1000);
-            let interval = seconds / 31536000;
-            if (interval > 1) return Math.floor(interval) + " years ago";
-            interval = seconds / 2592000;
-            if (interval > 1) return Math.floor(interval) + " months ago";
-            interval = seconds / 86400;
-            if (interval > 1) return Math.floor(interval) + " days ago";
-            interval = seconds / 3600;
-            if (interval > 1) return Math.floor(interval) + " hours ago";
-            interval = seconds / 60;
-            if (interval > 1) return Math.floor(interval) + " minutes ago";
-            return "just now";
-        }
-    </script>
-</body>
+            // --- Time Scale and Positioning System ---
+            function buildTimeScale() {
+                const timeSlots = generateTimeSlots();
+                const headerCells = document.querySelectorAll(
+                    ".schedule-table thead th:not(:first-child)",
+                );
+                const tableContainer =
+                    document.querySelector(".schedule-table");
+                const stickyDayCell = document.querySelector(
+                    ".schedule-table thead th:first-child",
+                );
+
+                if (!tableContainer || headerCells.length === 0) {
+                    return [];
+                }
+
+                const tableRect = tableContainer.getBoundingClientRect();
+                const dayColumnWidth = stickyDayCell
+                    ? stickyDayCell.getBoundingClientRect().width
+                    : 0;
+                const scale = [];
+
+                // Build time breakpoints from header positions, accounting for sticky Day column
+                timeSlots.forEach((timeSlot, index) => {
+                    const minutes = parseTimeToMinutes(timeSlot);
+                    const headerCell = headerCells[index];
+                    if (headerCell) {
+                        const rect = headerCell.getBoundingClientRect();
+                        // Make coordinates relative to the time slots area (excluding sticky Day column)
+                        // This ensures classes align exactly with their time slot columns
+                        scale.push({
+                            minutes: minutes,
+                            x: rect.left - tableRect.left - dayColumnWidth,
+                            width: rect.width,
+                        });
+                    }
+                });
+
+                // Sort by minutes to ensure proper ordering
+                scale.sort((a, b) => a.minutes - b.minutes);
+
+                return scale;
+            }
+
+            function mapMinutesToX(targetMinutes, timeScale) {
+                if (!timeScale.length) return 0;
+
+                // Find exact match first (for precise alignment with slot start times)
+                const exactMatch = timeScale.find(
+                    (slot) => slot.minutes === targetMinutes,
+                );
+                if (exactMatch) {
+                    return exactMatch.x; // Exact alignment with time slot column
+                }
+
+                // Find the segment containing the target time
+                for (let i = 0; i < timeScale.length - 1; i++) {
+                    const current = timeScale[i];
+                    const next = timeScale[i + 1];
+
+                    if (
+                        targetMinutes >= current.minutes &&
+                        targetMinutes < next.minutes
+                    ) {
+                        // Linear interpolation within the segment for precise positioning
+                        const progress =
+                            (targetMinutes - current.minutes) /
+                            (next.minutes - current.minutes);
+                        return current.x + current.width * progress;
+                    }
+                }
+
+                // Handle edge cases
+                if (targetMinutes < timeScale[0].minutes) {
+                    // Before first slot - align with first slot but indicate it's early
+                    return Math.max(0, timeScale[0].x - 10);
+                }
+
+                // After last slot
+                const lastSlot = timeScale[timeScale.length - 1];
+                if (targetMinutes >= lastSlot.minutes) {
+                    const extraMinutes = targetMinutes - lastSlot.minutes;
+                    const avgSlotDuration =
+                        timeScale.length > 1
+                            ? timeScale[1].minutes - timeScale[0].minutes
+                            : 95;
+                    const extraProgress = Math.min(
+                        extraMinutes / avgSlotDuration,
+                        1,
+                    ); // Cap at 1 to prevent overflow
+                    return lastSlot.x + lastSlot.width * extraProgress;
+                }
+
+                return lastSlot.x + lastSlot.width;
+            }
+
+            // --- Enhanced Collision Detection ---
+            function calculateLaneAssignments(dayClasses) {
+                if (!dayClasses || dayClasses.length === 0) {
+                    return [];
+                }
+
+                // Apply time snapping and convert times to minutes, then sort by start time
+                const classesWithMinutes = dayClasses
+                    .map((cls) => {
+                        // Snap start time to nearest time slot
+                        const snappedStartTime = snapTimeToSlot(cls.startTime);
+                        const snappedStartMinutes =
+                            parseTimeToMinutes(snappedStartTime);
+
+                        // Calculate duration to maintain class length
+                        const originalDuration =
+                            parseTimeToMinutes(cls.endTime) -
+                            parseTimeToMinutes(cls.startTime);
+                        const snappedEndMinutes =
+                            snappedStartMinutes + originalDuration;
+
+                        return {
+                            ...cls,
+                            startMinutes: snappedStartMinutes,
+                            endMinutes: snappedEndMinutes,
+                            originalStartTime: cls.startTime,
+                            originalEndTime: cls.endTime,
+                        };
+                    })
+                    .sort((a, b) => a.startMinutes - b.startMinutes);
+
+                // Track end times for each lane
+                const lanes = [];
+
+                classesWithMinutes.forEach((cls) => {
+                    // Find the first available lane (one where no class conflicts)
+                    let assignedLane = 0;
+                    while (
+                        assignedLane < lanes.length &&
+                        lanes[assignedLane] > cls.startMinutes
+                    ) {
+                        assignedLane++;
+                    }
+
+                    // Assign this lane and update its end time
+                    if (assignedLane >= lanes.length) {
+                        lanes.push(cls.endMinutes);
+                    } else {
+                        lanes[assignedLane] = cls.endMinutes;
+                    }
+
+                    cls.lane = assignedLane;
+                    cls.totalLanes = lanes.length;
+                });
+
+                // Update total lanes for all classes
+                classesWithMinutes.forEach((cls) => {
+                    cls.totalLanes = lanes.length;
+                });
+
+                return classesWithMinutes;
+            }
+
+            // --- New Schedule Table Renderer ---
+            function updateScheduleTable(schedule) {
+                const tableBody = document.getElementById("schedule-table");
+                tableBody.innerHTML = "";
+
+                const days = [
+                    "Monday",
+                    "Tuesday",
+                    "Wednesday",
+                    "Thursday",
+                    "Friday",
+                ];
+                const currentUser = localStorage.getItem("userName");
+
+                // Wait for the table to be rendered before building time scale
+                setTimeout(() => {
+                    const timeScale = buildTimeScale();
+
+                    days.forEach((day) => {
+                        const row = document.createElement("tr");
+                        row.className =
+                            "hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors";
+
+                        // Day name cell (sticky)
+                        const dayCell = document.createElement("td");
+                        dayCell.className =
+                            "p-3 border-t font-semibold text-gray-800 dark:text-gray-200 bg-white dark:bg-slate-800 sticky left-0 z-10 min-w-20 border-r border-gray-200 dark:border-gray-600";
+                        dayCell.style.verticalAlign = "top";
+                        dayCell.textContent = day;
+                        row.appendChild(dayCell);
+
+                        // Single spanning cell for the overlay container
+                        const overlayCell = document.createElement("td");
+                        overlayCell.className =
+                            "border-t border-gray-200 dark:border-gray-600 p-0 relative";
+                        overlayCell.colSpan = 7; // Span all time slot columns
+                        overlayCell.style.verticalAlign = "top";
+
+                        // Get classes for this day and calculate lanes
+                        const dayClasses = schedule.filter(
+                            (cls) => cls.day === day,
+                        );
+                        const classesWithLanes =
+                            calculateLaneAssignments(dayClasses);
+                        const maxLanes =
+                            classesWithLanes.length > 0
+                                ? Math.max(
+                                      ...classesWithLanes.map(
+                                          (cls) => cls.totalLanes || 1,
+                                      ),
+                                  )
+                                : 1;
+
+                        // Create overlay container
+                        const overlay = document.createElement("div");
+                        overlay.className = "absolute inset-0 overflow-hidden";
+                        overlay.style.height = `${Math.max(80, maxLanes * 65 + 10)}px`;
+                        overlay.style.minHeight = "80px";
+
+                        // Render each class as absolutely positioned element
+                        classesWithLanes.forEach((cls) => {
+                            const classDiv = renderClassCard(
+                                cls,
+                                timeScale,
+                                currentUser,
+                            );
+                            overlay.appendChild(classDiv);
+                        });
+
+                        // Set cell height to match overlay
+                        overlayCell.style.height = overlay.style.height;
+
+                        overlayCell.appendChild(overlay);
+                        row.appendChild(overlayCell);
+                        tableBody.appendChild(row);
+                    });
+                }, 10); // Small delay to ensure table headers are rendered
+            }
+
+            // --- Class Card Renderer ---
+            function renderClassCard(cls, timeScale, currentUser) {
+                const classDiv = document.createElement("div");
+
+                // Calculate precise positioning for exact alignment with time slots
+                const startX = mapMinutesToX(cls.startMinutes, timeScale);
+                const endX = mapMinutesToX(cls.endMinutes, timeScale);
+                const width = Math.max(endX - startX, 80); // Minimum width of 80px for readability
+
+                // Lane-based vertical positioning
+                const laneHeight = 60;
+                const laneGap = 5;
+                const top = (cls.lane || 0) * (laneHeight + laneGap) + 5;
+
+                // Apply absolute positioning within overlay container
+                classDiv.style.position = "absolute";
+                classDiv.style.left = `${Math.max(0, startX)}px`;
+                classDiv.style.width = `${width}px`;
+                classDiv.style.top = `${top}px`;
+                classDiv.style.height = `${laneHeight}px`;
+                classDiv.style.zIndex = "10";
+
+                // Styling
+                const isCurrentUser = cls.addedBy === currentUser;
+                const baseClasses =
+                    "border rounded-lg p-2 cursor-pointer transition-all overflow-hidden shadow-sm class-card flex flex-col justify-center";
+
+                if (isCurrentUser) {
+                    classDiv.className = `${baseClasses} bg-green-100 dark:bg-green-900 border-green-300 dark:border-green-600 hover:bg-green-200 dark:hover:bg-green-800`;
+                } else {
+                    classDiv.className = `${baseClasses} bg-blue-100 dark:bg-blue-900 border-blue-300 dark:border-blue-600 hover:bg-blue-200 dark:hover:bg-blue-800`;
+                }
+
+                // Click handler and tooltip - use original times for display
+                const displayStartTime = cls.originalStartTime || cls.startTime;
+                const displayEndTime = cls.originalEndTime || cls.endTime;
+
+                if (isCurrentUser) {
+                    classDiv.onclick = () =>
+                        editClassFromTimetable(
+                            cls.id,
+                            cls.day,
+                            displayStartTime,
+                            displayEndTime,
+                            cls.location,
+                            cls.subject,
+                        );
+                    classDiv.title = `Click to edit: ${cls.subject} • ${cls.location || "TBA"} • ${formatTime(displayStartTime)}–${formatTime(displayEndTime)}`;
+                } else {
+                    classDiv.title = `${cls.subject} • ${cls.location || "TBA"} • ${formatTime(displayStartTime)}–${formatTime(displayEndTime)} (Added by ${cls.addedBy})`;
+                }
+
+                // Content with proper font hierarchy
+                const contentDiv = document.createElement("div");
+                contentDiv.className =
+                    "text-center flex flex-col justify-center h-full px-1";
+
+                // User name (Name > Subject=Location=Time hierarchy)
+                const addedByDiv = document.createElement("div");
+                addedByDiv.className = isCurrentUser
+                    ? "text-green-800 dark:text-green-200 font-bold class-card-name mb-1"
+                    : "text-blue-800 dark:text-blue-200 font-bold class-card-name mb-1";
+                addedByDiv.textContent =
+                    (cls.addedBy || "Unknown").length > 10
+                        ? (cls.addedBy || "Unknown").substring(0, 10) + "..."
+                        : cls.addedBy || "Unknown";
+
+                // Subject name (smaller than name, same as location/time)
+                const subjectDiv = document.createElement("div");
+                subjectDiv.className = isCurrentUser
+                    ? "text-green-900 dark:text-green-100 font-semibold class-card-details mb-1"
+                    : "text-blue-900 dark:text-blue-100 font-semibold class-card-details mb-1";
+                subjectDiv.textContent =
+                    cls.subject?.length > 15
+                        ? cls.subject.substring(0, 15) + "..."
+                        : cls.subject || "Untitled";
+
+                // Location (same size as subject and time)
+                const locationDiv = document.createElement("div");
+                locationDiv.className = isCurrentUser
+                    ? "text-green-700 dark:text-green-300 class-card-details mb-1"
+                    : "text-blue-700 dark:text-blue-300 class-card-details mb-1";
+                locationDiv.textContent = cls.location || "TBA";
+
+                // Time (same size as subject and location) - use original times for display
+                const timeDiv = document.createElement("div");
+                timeDiv.className = isCurrentUser
+                    ? "text-green-600 dark:text-green-400 class-card-details"
+                    : "text-blue-600 dark:text-blue-400 class-card-details";
+                timeDiv.textContent = `${formatTime(displayStartTime)}–${formatTime(displayEndTime)}`;
+
+                contentDiv.appendChild(addedByDiv);
+                contentDiv.appendChild(subjectDiv);
+                contentDiv.appendChild(locationDiv);
+                contentDiv.appendChild(timeDiv);
+                classDiv.appendChild(contentDiv);
+
+                return classDiv;
+            }
+
+            // Time snapping function - snaps time to nearest time slot start time
+            function snapTimeToSlot(timeString) {
+                const timeSlots = generateTimeSlots();
+                const targetMinutes = parseTimeToMinutes(timeString);
+
+                let closestSlot = timeSlots[0];
+                let minDifference = Math.abs(
+                    targetMinutes - parseTimeToMinutes(timeSlots[0]),
+                );
+
+                // Find the closest time slot start time
+                for (let i = 1; i < timeSlots.length; i++) {
+                    const slotMinutes = parseTimeToMinutes(timeSlots[i]);
+                    const difference = Math.abs(targetMinutes - slotMinutes);
+
+                    if (difference < minDifference) {
+                        minDifference = difference;
+                        closestSlot = timeSlots[i];
+                    }
+                }
+
+                return closestSlot;
+            }
+
+            // Function to convert minutes back to time string
+            function minutesToTimeString(minutes) {
+                const hours = Math.floor(minutes / 60);
+                const mins = minutes % 60;
+                return `${hours.toString().padStart(2, "0")}:${mins.toString().padStart(2, "0")}`;
+            }
+
+            // Helper function to check if any class overlaps with a time slot
+            function hasClassInSlot(dayClasses, slotStart, slotEnd) {
+                return dayClasses.some((cls) => {
+                    const classStartMinutes = parseTimeToMinutes(cls.startTime);
+                    const classEndMinutes = parseTimeToMinutes(cls.endTime);
+                    return (
+                        classStartMinutes < slotEnd &&
+                        classEndMinutes > slotStart
+                    );
+                });
+            }
+
+            // --- Firestore CRUD Functions ---
+            function addClass() {
+                if (!classesCollection) {
+                    alert("Please join a group before adding a class.");
+                    return;
+                }
+                const newClass = {
+                    day: document.getElementById("class-day").value,
+                    startTime: document.getElementById("start-time").value,
+                    endTime: document.getElementById("end-time").value,
+                    location: document.getElementById("class-location").value,
+                    subject: document
+                        .getElementById("subject-name")
+                        .value.trim(),
+                    addedBy: localStorage.getItem("userName") || "Anonymous",
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(), // For activity feed
+                };
+                if (
+                    !newClass.subject ||
+                    !newClass.startTime ||
+                    !newClass.endTime
+                ) {
+                    alert("Please fill in required fields.");
+                    return;
+                }
+                classesCollection
+                    .add(newClass)
+                    .then(() =>
+                        document.getElementById("add-class-form").reset(),
+                    )
+                    .catch((error) =>
+                        console.error("Error adding document: ", error),
+                    );
+            }
+
+            function editClass(id, day, startTime, endTime, location, subject) {
+                document.getElementById("class-day").value = day;
+                document.getElementById("start-time").value = startTime;
+                document.getElementById("end-time").value = endTime;
+                document.getElementById("class-location").value = location;
+                document.getElementById("subject-name").value = subject;
+
+                const actionButton = document.getElementById("add-update-btn");
+                actionButton.innerHTML =
+                    '<i class="fas fa-save mr-2"></i>Update Class';
+                actionButton.onclick = () => updateClass(id);
+            }
+
+            function updateClass(id) {
+                if (!classesCollection) return;
+                const updatedClass = {
+                    day: document.getElementById("class-day").value,
+                    startTime: document.getElementById("start-time").value,
+                    endTime: document.getElementById("end-time").value,
+                    location: document.getElementById("class-location").value,
+                    subject: document
+                        .getElementById("subject-name")
+                        .value.trim(),
+                    addedBy: localStorage.getItem("userName") || "Anonymous", // Keep user tag
+                };
+                classesCollection
+                    .doc(id)
+                    .update(updatedClass)
+                    .then(() => {
+                        document.getElementById("add-class-form").reset();
+                        resetFormToAddMode();
+                    })
+                    .catch((error) =>
+                        console.error("Error updating document: ", error),
+                    );
+            }
+
+            function resetFormToAddMode() {
+                // Reset the main action button to "Add Class" mode
+                const actionButton = document.getElementById("add-update-btn");
+                actionButton.innerHTML =
+                    '<i class="fas fa-plus mr-2"></i>Add Class';
+                actionButton.onclick = addClass;
+
+                // Hide the delete button
+                const deleteButton = document.getElementById("delete-btn");
+                deleteButton.classList.add("hidden");
+                deleteButton.onclick = null;
+
+                // Clear all form inputs to prevent lingering edit context
+                document.getElementById("class-day").selectedIndex = 0; // Reset to first option (Monday)
+                document.getElementById("start-time").value = "";
+                document.getElementById("end-time").value = "";
+                document.getElementById("class-location").selectedIndex = 0; // Reset to first option (AB-1)
+                document.getElementById("subject-name").value = "";
+            }
+
+            function deleteClass(id) {
+                if (!classesCollection) return;
+                if (confirm("Are you sure you want to delete this class?")) {
+                    classesCollection
+                        .doc(id)
+                        .delete()
+                        .catch((error) =>
+                            console.error("Error removing document: ", error),
+                        );
+                }
+            }
+
+            // --- Helper Functions ---
+            function formatTime(timeString) {
+                if (!timeString) return "";
+                const [h, m] = timeString.split(":");
+                return `${h % 12 || 12}:${m} ${h >= 12 ? "PM" : "AM"}`;
+            }
+            function generateTimeSlots() {
+                return [
+                    "08:30",
+                    "10:05",
+                    "11:40",
+                    "13:15",
+                    "14:50",
+                    "16:25",
+                    "18:00",
+                ];
+            }
+            function isTimeInSlot(currentTime, startTime, endTime) {
+                return currentTime >= startTime && currentTime < endTime;
+            }
+            function formatTimeAgo(date) {
+                const seconds = Math.floor((new Date() - date) / 1000);
+                let interval = seconds / 31536000;
+                if (interval > 1) return Math.floor(interval) + " years ago";
+                interval = seconds / 2592000;
+                if (interval > 1) return Math.floor(interval) + " months ago";
+                interval = seconds / 86400;
+                if (interval > 1) return Math.floor(interval) + " days ago";
+                interval = seconds / 3600;
+                if (interval > 1) return Math.floor(interval) + " hours ago";
+                interval = seconds / 60;
+                if (interval > 1) return Math.floor(interval) + " minutes ago";
+                return "just now";
+            }
+        </script>
+    </body>
 </html>
