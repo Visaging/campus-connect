@@ -86,31 +86,17 @@
             outline-offset: 2px !important;
         }
         
-        /* Collapsible class list styles */
-        .class-list-collapsed {
-            max-height: 0 !important;
-            margin-bottom: 0 !important;
-            padding-top: 0 !important;
-            padding-bottom: 0 !important;
-        }
-        
-        .class-list-expanded {
-            max-height: 1000px !important;
-        }
-        
-        .chevron-rotated {
-            transform: rotate(180deg);
-        }
+        /* Class list styles removed */
     </style>
 </head>
 <body class="min-h-screen">
     <div class="max-w-6xl mx-auto px-4 py-8">
         <header class="text-center mb-8 relative">
             <!-- Dark Mode Toggle -->
-            <button id="theme-toggle" class="absolute top-0 right-0 p-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
+            <button id="theme-toggle" class="absolute top-0 right-0 sm:top-0 sm:right-0 top-2 right-2 p-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors z-10">
                 <i id="theme-icon" class="fas fa-moon"></i>
             </button>
-            <h1 class="text-4xl font-bold text-blue-600 dark:text-blue-400 mb-3"><i class="fas fa-users mr-2"></i>Campus Connect</h1>
+            <h1 class="text-3xl sm:text-4xl font-bold text-blue-600 dark:text-blue-400 mb-3 pr-12 sm:pr-0"><i class="fas fa-users mr-2"></i>Campus Connect</h1>
             <p class="text-gray-600 dark:text-gray-300 text-lg">Track your friends' schedules and coordinate movements around campus</p>
         </header>
 
@@ -214,28 +200,18 @@
                         <thead>
                             <tr class="bg-gray-100">
                                 <th class="p-3 text-left font-semibold text-gray-700 sticky left-0 bg-gray-100">Day</th>
-                                <th class="p-2 text-center font-semibold text-gray-700 min-w-24 text-xs">8:00</th>
-                                <th class="p-2 text-center font-semibold text-gray-700 min-w-24 text-xs">9:00</th>
-                                <th class="p-2 text-center font-semibold text-gray-700 min-w-24 text-xs">10:00</th>
-                                <th class="p-2 text-center font-semibold text-gray-700 min-w-24 text-xs">11:00</th>
-                                <th class="p-2 text-center font-semibold text-gray-700 min-w-24 text-xs">12:00</th>
-                                <th class="p-2 text-center font-semibold text-gray-700 min-w-24 text-xs">13:00</th>
-                                <th class="p-2 text-center font-semibold text-gray-700 min-w-24 text-xs">14:00</th>
-                                <th class="p-2 text-center font-semibold text-gray-700 min-w-24 text-xs">15:00</th>
-                                <th class="p-2 text-center font-semibold text-gray-700 min-w-24 text-xs">16:00</th>
-                                <th class="p-2 text-center font-semibold text-gray-700 min-w-24 text-xs">17:00</th>
+                                <th class="p-2 text-center font-semibold text-gray-700 min-w-24 text-xs">8:30</th>
+                                <th class="p-2 text-center font-semibold text-gray-700 min-w-24 text-xs">10:05</th>
+                                <th class="p-2 text-center font-semibold text-gray-700 min-w-24 text-xs">11:40</th>
+                                <th class="p-2 text-center font-semibold text-gray-700 min-w-24 text-xs">13:15</th>
+                                <th class="p-2 text-center font-semibold text-gray-700 min-w-24 text-xs">14:50</th>
+                                <th class="p-2 text-center font-semibold text-gray-700 min-w-24 text-xs">16:25</th>
                                 <th class="p-2 text-center font-semibold text-gray-700 min-w-24 text-xs">18:00</th>
+                                <th class="p-2 text-center font-semibold text-gray-700 min-w-24 text-xs">19:30</th>
                             </tr>
                         </thead>
                         <tbody id="schedule-table"></tbody>
                     </table>
-                </div>
-                <div class="mt-6 card bg-white rounded-xl p-6">
-                    <button id="class-list-toggle" class="w-full flex items-center justify-between text-lg font-semibold mb-4 text-gray-800 hover:text-blue-600 transition-colors" onclick="toggleClassList()">
-                        <span><i class="fas fa-list mr-2"></i>Full Class List</span>
-                        <i id="class-list-chevron" class="fas fa-chevron-down transition-transform"></i>
-                    </button>
-                    <div id="class-list" class="space-y-3 transition-all duration-300 overflow-hidden"></div>
                 </div>
             </div>
 
@@ -346,11 +322,7 @@
             initializeTheme();
             document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
             
-            // Initialize class list as collapsed by default
-            const classList = document.getElementById('class-list');
-            const chevron = document.getElementById('class-list-chevron');
-            classList.classList.add('class-list-collapsed');
-            chevron.classList.remove('chevron-rotated');
+            // Class list functionality removed
             
             document.getElementById('user-name').value = localStorage.getItem('userName') || '';
             const savedGroupCode = localStorage.getItem('groupCode');
@@ -457,8 +429,15 @@
         }
         
         function addActivityMessage(message) {
-            // Don't add duplicate messages
             const activityList = document.getElementById('recent-activity-list');
+            
+            // Clear placeholder message if it exists
+            const placeholder = document.getElementById('activity-placeholder');
+            if (placeholder) {
+                placeholder.remove();
+            }
+            
+            // Don't add duplicate messages
             const existingMessages = Array.from(activityList.children).map(child => child.textContent);
             if (existingMessages.some(existing => existing.includes(message))) return;
             
@@ -540,20 +519,25 @@
             return getMemberCurrentStatus(schedule, currentUser);
         }
         
-        // --- UI Toggle Functions ---
-        function toggleClassList() {
-            const classList = document.getElementById('class-list');
-            const chevron = document.getElementById('class-list-chevron');
+        // --- Click-to-Edit Functions ---
+        function editClassFromTimetable(id, day, startTime, endTime, location, subject) {
+            // Switch to timetable tab if not already there
+            switchTab('timetable');
             
-            if (classList.classList.contains('class-list-collapsed')) {
-                classList.classList.remove('class-list-collapsed');
-                classList.classList.add('class-list-expanded');
-                chevron.classList.add('chevron-rotated');
-            } else {
-                classList.classList.add('class-list-collapsed');
-                classList.classList.remove('class-list-expanded');
-                chevron.classList.remove('chevron-rotated');
-            }
+            // Populate the form with class data
+            document.getElementById('class-day').value = day;
+            document.getElementById('start-time').value = startTime;
+            document.getElementById('end-time').value = endTime;
+            document.getElementById('class-location').value = location;
+            document.getElementById('subject-name').value = subject;
+
+            // Change button to update mode
+            const actionButton = document.getElementById('add-update-btn');
+            actionButton.innerHTML = '<i class="fas fa-save mr-2"></i>Update Class';
+            actionButton.onclick = () => updateClass(id);
+            
+            // Scroll to form
+            document.getElementById('add-class-form').scrollIntoView({ behavior: 'smooth' });
         }
 
         // --- Group Management ---
@@ -588,7 +572,6 @@
             unsubscribe = classesCollection.onSnapshot(snapshot => {
                 window.currentSchedule = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 // Update all parts of the UI that depend on schedule data
-                updateClassList(window.currentSchedule);
                 updateScheduleTable(window.currentSchedule);
                 updateTrackerTab(window.currentSchedule);
                 // Check class status immediately when data changes
@@ -686,138 +669,21 @@
                 });
             }
 
-            // Update Recent Activity
-            const sortedSchedule = schedule.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
-            const recentActivity = sortedSchedule.slice(0, 10); // Get latest 10 activities (extended)
-            if (recentActivity.length === 0) {
-                 activityList.innerHTML = '<p class="text-gray-500">Join a group to see the latest activity.</p>';
-            } else {
-                recentActivity.forEach(cls => {
-                    const activityDiv = document.createElement('div');
-                    activityDiv.className = 'notification bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500';
-                    const timeAgo = cls.createdAt ? formatTimeAgo(cls.createdAt.toDate()) : 'a moment ago';
-                    
-                    // Create main activity text safely
-                    const activityText = document.createElement('p');
-                    activityText.className = 'text-sm text-gray-900';
-                    
-                    const addedByBold = document.createElement('b');
-                    addedByBold.textContent = cls.addedBy;
-                    
-                    const subjectBold = document.createElement('b');
-                    subjectBold.textContent = cls.subject;
-                    
-                    activityText.appendChild(addedByBold);
-                    activityText.appendChild(document.createTextNode(' added the class '));
-                    activityText.appendChild(subjectBold);
-                    activityText.appendChild(document.createTextNode('.'));
-                    
-                    // Create time element safely
-                    const timeElement = document.createElement('p');
-                    timeElement.className = 'text-xs text-gray-500 mt-1';
-                    timeElement.textContent = timeAgo;
-                    
-                    activityDiv.appendChild(activityText);
-                    activityDiv.appendChild(timeElement);
-                    activityList.appendChild(activityDiv);
-                });
+            // Update Recent Activity - Only show movement/location related activities, not class additions
+            // Initialize with placeholder if empty
+            if (activityList.children.length === 0) {
+                activityList.innerHTML = '<p class="text-gray-500" id="activity-placeholder">Activity updates will appear here when friends are moving between classes.</p>';
             }
         }
         
-        function updateClassList(schedule) {
-            const classList = document.getElementById('class-list');
-            classList.innerHTML = '';
-            
-            // Filter to show only current user's classes
-            const currentUser = localStorage.getItem('userName');
-            const userSchedule = schedule.filter(cls => cls.addedBy === currentUser);
-            
-            if (userSchedule.length === 0) {
-                classList.innerHTML = '<p class="text-gray-500 text-center">You haven\'t added any classes yet. Add one from the form above!</p>';
-                return;
-            }
-            
-            // Sort user's classes by day and time
-            const sortedSchedule = userSchedule.sort((a, b) => {
-                const dayOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
-                const dayA = dayOrder.indexOf(a.day);
-                const dayB = dayOrder.indexOf(b.day);
-                if (dayA !== dayB) return dayA - dayB;
-                return parseTimeToMinutes(a.startTime) - parseTimeToMinutes(b.startTime);
-            });
-            
-            sortedSchedule.forEach(cls => {
-                const classItem = document.createElement('div');
-                classItem.className = 'bg-gray-50 p-4 rounded-lg flex justify-between items-center';
-                
-                // Create main content div
-                const contentDiv = document.createElement('div');
-                
-                // Create user name line on top - safely (larger font)
-                const userLine = document.createElement('div');
-                userLine.className = 'font-bold text-gray-900 text-base';
-                userLine.textContent = cls.addedBy || 'Unknown';
-                
-                // Create subject line - safely (smaller font)
-                const subjectLine = document.createElement('div');
-                subjectLine.className = 'font-medium text-gray-700 text-sm';
-                subjectLine.textContent = cls.subject;
-                
-                // Create schedule line - safely (same font as subject)
-                const scheduleLine = document.createElement('div');
-                scheduleLine.className = 'text-sm text-gray-600';
-                scheduleLine.textContent = `${cls.day} • ${formatTime(cls.startTime)}-${formatTime(cls.endTime)} • ${cls.location}`;
-                
-                contentDiv.appendChild(userLine);
-                contentDiv.appendChild(subjectLine);
-                contentDiv.appendChild(scheduleLine);
-                
-                // Create action buttons div
-                const actionsDiv = document.createElement('div');
-                actionsDiv.className = 'flex gap-2';
-                
-                // Get current user name
-                const currentUser = localStorage.getItem('userName');
-                
-                // Only show edit/delete buttons if current user added this class
-                if (currentUser && cls.addedBy === currentUser) {
-                    // Create edit button safely
-                    const editButton = document.createElement('button');
-                    editButton.className = 'text-blue-600 hover:text-blue-800';
-                    editButton.innerHTML = '<i class="fas fa-edit"></i>';
-                    editButton.onclick = () => editClass(cls.id, cls.day, cls.startTime, cls.endTime, cls.location, cls.subject);
-                    
-                    // Create delete button safely
-                    const deleteButton = document.createElement('button');
-                    deleteButton.className = 'text-red-600 hover:text-red-800';
-                    deleteButton.innerHTML = '<i class="fas fa-trash"></i>';
-                    deleteButton.onclick = () => deleteClass(cls.id);
-                    
-                    actionsDiv.appendChild(editButton);
-                    actionsDiv.appendChild(deleteButton);
-                } else {
-                    // Show a disabled placeholder or message for classes added by others
-                    const noActionDiv = document.createElement('div');
-                    noActionDiv.className = 'text-gray-400 text-sm';
-                    noActionDiv.innerHTML = '<i class="fas fa-lock text-xs"></i>';
-                    noActionDiv.title = 'Only the person who added this class can edit it';
-                    actionsDiv.appendChild(noActionDiv);
-                }
-                
-                classItem.appendChild(contentDiv);
-                classItem.appendChild(actionsDiv);
-                classList.appendChild(classItem);
-            });
-        }
 
         function updateScheduleTable(schedule) {
             const tableBody = document.getElementById('schedule-table');
             tableBody.innerHTML = '';
             
             const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
-            const startHour = 8; // 8:00 AM
-            const endHour = 19; // 7:00 PM (exclusive)
-            const totalHours = endHour - startHour; // 11 hours total
+            const timeSlots = generateTimeSlots();
+            const currentUser = localStorage.getItem('userName');
             
             // Create a row for each day
             days.forEach(day => {
@@ -830,80 +696,89 @@
                 dayCell.textContent = day;
                 row.appendChild(dayCell);
                 
-                // Get all classes for this day, sorted by start time
-                const dayClasses = schedule.filter(cls => cls.day === day)
-                    .sort((a, b) => parseTimeToMinutes(a.startTime) - parseTimeToMinutes(b.startTime));
+                // Get all classes for this day
+                const dayClasses = schedule.filter(cls => cls.day === day);
                 
-                let currentHour = startHour;
-                let classIndex = 0;
-                
-                // Fill the row with appropriate cells
-                while (currentHour < endHour) {
-                    const currentClass = classIndex < dayClasses.length ? dayClasses[classIndex] : null;
+                // Create cells for each time slot
+                timeSlots.forEach((slotTime, slotIndex) => {
+                    const currentSlotMinutes = parseTimeToMinutes(slotTime);
+                    const nextSlotMinutes = slotIndex < timeSlots.length - 1 ? parseTimeToMinutes(timeSlots[slotIndex + 1]) : currentSlotMinutes + 120;
                     
-                    if (currentClass) {
-                        const classStartMinutes = parseTimeToMinutes(currentClass.startTime);
-                        const classEndMinutes = parseTimeToMinutes(currentClass.endTime);
-                        const classStartHour = Math.floor(classStartMinutes / 60);
-                        const classEndHour = Math.ceil(classEndMinutes / 60);
+                    // Find ALL classes that overlap with this time slot
+                    const slotClasses = dayClasses.filter(cls => {
+                        const classStartMinutes = parseTimeToMinutes(cls.startTime);
+                        const classEndMinutes = parseTimeToMinutes(cls.endTime);
+                        // Check if class overlaps with this time slot
+                        return (classStartMinutes < nextSlotMinutes && classEndMinutes > currentSlotMinutes);
+                    });
+                    
+                    // Create cell for this time slot
+                    const slotCell = document.createElement('td');
+                    slotCell.className = 'p-1 border-t border-r border-gray-200 dark:border-gray-600 min-w-24 align-top relative';
+                    
+                    if (slotClasses.length === 0) {
+                        // Empty slot
+                        slotCell.className += ' h-16 hover:bg-blue-50 dark:hover:bg-slate-600 transition-colors';
+                    } else {
+                        // Calculate minimum height needed for all classes
+                        const minHeight = Math.max(64, slotClasses.length * 60); // 60px per class, minimum 64px
+                        slotCell.style.height = `${minHeight}px`;
+                        slotCell.className += ' flex flex-col gap-1';
                         
-                        // If there's a gap before this class, fill with empty cells
-                        while (currentHour < classStartHour && currentHour < endHour) {
-                            const emptyCell = document.createElement('td');
-                            emptyCell.className = 'p-1 border-t border-r border-gray-200 dark:border-gray-600 min-w-24 h-16 hover:bg-blue-50 dark:hover:bg-slate-600 transition-colors';
-                            row.appendChild(emptyCell);
-                            currentHour++;
-                        }
-                        
-                        // Create class cell with appropriate colSpan
-                        if (currentHour < endHour) {
-                            const classSpan = Math.min(classEndHour - classStartHour, endHour - currentHour);
-                            const classCell = document.createElement('td');
-                            classCell.className = 'p-1 border-t border-r border-gray-200 dark:border-gray-600 min-w-24 h-16 align-top relative';
+                        // Add each class to the slot
+                        slotClasses.forEach(cls => {
+                            const classDiv = document.createElement('div');
                             
-                            if (classSpan > 1) {
-                                classCell.setAttribute('colSpan', classSpan.toString());
+                            // Different styling for current user vs others
+                            const isCurrentUser = cls.addedBy === currentUser;
+                            const baseClasses = 'border rounded-md p-2 text-center cursor-pointer transition-colors flex flex-col justify-center text-xs';
+                            
+                            if (isCurrentUser) {
+                                // Current user's classes - green theme
+                                classDiv.className = `${baseClasses} bg-green-100 dark:bg-green-900 border-green-300 dark:border-green-600 hover:bg-green-200 dark:hover:bg-green-800`;
+                            } else {
+                                // Other users' classes - blue theme
+                                classDiv.className = `${baseClasses} bg-blue-100 dark:bg-blue-900 border-blue-300 dark:border-blue-600 hover:bg-blue-200 dark:hover:bg-blue-800`;
                             }
                             
-                            // Create class content
-                            const classDiv = document.createElement('div');
-                            classDiv.className = 'bg-blue-100 dark:bg-blue-900 border border-blue-300 dark:border-blue-600 rounded-md p-2 text-center h-full cursor-pointer hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors flex flex-col justify-center';
+                            // Add click handler for editing (only for current user's classes)
+                            if (isCurrentUser) {
+                                classDiv.onclick = () => editClassFromTimetable(cls.id, cls.day, cls.startTime, cls.endTime, cls.location, cls.subject);
+                                classDiv.title = `Click to edit: ${cls.subject} • ${cls.location || 'TBA'} • ${formatTime(cls.startTime)}–${formatTime(cls.endTime)}`;
+                            } else {
+                                classDiv.title = `${cls.subject} • ${cls.location || 'TBA'} • ${formatTime(cls.startTime)}–${formatTime(cls.endTime)} (Added by ${cls.addedBy})`;
+                            }
                             
-                            // User name (top, bigger)
+                            // User name
                             const addedByDiv = document.createElement('div');
-                            addedByDiv.className = 'font-semibold text-blue-900 dark:text-blue-100 text-xs leading-tight mb-1';
-                            addedByDiv.textContent = currentClass.addedBy;
+                            addedByDiv.className = isCurrentUser 
+                                ? 'font-semibold text-green-900 dark:text-green-100 leading-tight mb-1'
+                                : 'font-semibold text-blue-900 dark:text-blue-100 leading-tight mb-1';
+                            addedByDiv.textContent = cls.addedBy || 'Unknown';
                             
-                            // Subject (smaller)
+                            // Subject
                             const subjectDiv = document.createElement('div');
-                            subjectDiv.className = 'text-xs text-blue-700 dark:text-blue-200 leading-tight mb-1';
-                            subjectDiv.textContent = currentClass.subject;
+                            subjectDiv.className = isCurrentUser
+                                ? 'text-green-700 dark:text-green-200 leading-tight mb-1'
+                                : 'text-blue-700 dark:text-blue-200 leading-tight mb-1';
+                            subjectDiv.textContent = cls.subject || 'Untitled';
                             
-                            // Location (same as subject)
+                            // Location
                             const locationDiv = document.createElement('div');
-                            locationDiv.className = 'text-xs text-blue-600 dark:text-blue-300 font-medium';
-                            locationDiv.textContent = currentClass.location || 'TBA';
-                            
-                            // Tooltip
-                            classDiv.title = `${currentClass.subject} • ${currentClass.location || 'TBA'} • ${formatTime(currentClass.startTime)}–${formatTime(currentClass.endTime)}`;
+                            locationDiv.className = isCurrentUser
+                                ? 'text-green-600 dark:text-green-300 font-medium'
+                                : 'text-blue-600 dark:text-blue-300 font-medium';
+                            locationDiv.textContent = cls.location || 'TBA';
                             
                             classDiv.appendChild(addedByDiv);
                             classDiv.appendChild(subjectDiv);
                             classDiv.appendChild(locationDiv);
-                            classCell.appendChild(classDiv);
-                            row.appendChild(classCell);
-                            
-                            currentHour += classSpan;
-                            classIndex++;
-                        }
-                    } else {
-                        // No more classes, fill remaining with empty cells
-                        const emptyCell = document.createElement('td');
-                        emptyCell.className = 'p-1 border-t border-r border-gray-200 dark:border-gray-600 min-w-24 h-16 hover:bg-blue-50 dark:hover:bg-slate-600 transition-colors';
-                        row.appendChild(emptyCell);
-                        currentHour++;
+                            slotCell.appendChild(classDiv);
+                        });
                     }
-                }
+                    
+                    row.appendChild(slotCell);
+                });
                 
                 tableBody.appendChild(row);
             });
