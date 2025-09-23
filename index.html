@@ -172,6 +172,28 @@
             background-color: inherit;
         }
         
+        /* Vertical lines to separate time slots */
+        .schedule-table th:not(:first-child),
+        .schedule-table td:not(:first-child) {
+            border-left: 1px solid #e5e7eb;
+        }
+        
+        .dark .schedule-table th:not(:first-child),
+        .dark .schedule-table td:not(:first-child) {
+            border-left: 1px solid #4b5563;
+        }
+        
+        /* Make the vertical lines more prominent */
+        .schedule-table th:not(:first-child):nth-child(even),
+        .schedule-table td:not(:first-child):nth-child(even) {
+            border-left: 2px solid #d1d5db;
+        }
+        
+        .dark .schedule-table th:not(:first-child):nth-child(even),
+        .dark .schedule-table td:not(:first-child):nth-child(even) {
+            border-left: 2px solid #6b7280;
+        }
+        
         /* Prevent text overflow in class cards */
         .class-card .truncate {
             overflow: hidden;
@@ -189,6 +211,17 @@
             width: 100%;
         }
         
+        /* Font hierarchy classes for class cards */
+        .class-card-name {
+            font-size: 0.75rem; /* 12px - equivalent to text-xs */
+            line-height: 1rem;
+        }
+        
+        .class-card-details {
+            font-size: 0.625rem; /* 10px - smaller than text-xs but reliable */
+            line-height: 0.875rem;
+        }
+        
         /* Responsive table improvements */
         @media (max-width: 768px) {
             .schedule-table th, .schedule-table td {
@@ -198,7 +231,14 @@
             
             .class-card {
                 min-width: 80px;
-                font-size: 10px;
+            }
+            
+            .class-card-name {
+                font-size: 0.625rem; /* 10px on mobile */
+            }
+            
+            .class-card-details {
+                font-size: 0.5rem; /* 8px on mobile */
             }
             
             .day-grid {
@@ -377,37 +417,35 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-firestore-compat.js"></script>
 
     <script>
-        // Your personal Firebase configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyC_1gMcl2CsFRzSMhntGTigeXfnYOHYoNk",
-            authDomain: "vit-campus-connect-cd0c3.firebaseapp.com",
-            projectId: "vit-campus-connect-cd0c3",
-            storageBucket: "vit-campus-connect-cd0c3.appspot.com",
-            messagingSenderId: "53637648658",
-            appId: "1:53637648658:web:fcea85d52f6b022c2c63cb"
-        };
-
-        // Initialize Firebase with error handling
+        // Firebase configuration will be loaded from server
         let db = null;
         let classesCollection = null;
         let unsubscribe = null;
         
-        try {
-            firebase.initializeApp(firebaseConfig);
-            db = firebase.firestore();
-            
-            // Configure Firestore settings for better connectivity
-            db.settings({
-                experimentalForceLongPolling: true // Use long polling instead of WebChannel
-            });
-            
-            // Enable offline persistence
-            db.enablePersistence().catch(error => {
-                console.log('Offline persistence failed:', error);
-            });
-            
-        } catch (error) {
-            console.error('Firebase initialization failed:', error);
+        // Initialize Firebase with configuration from server
+        async function initializeFirebase() {
+            try {
+                const response = await fetch('/api/config');
+                const { firebaseConfig } = await response.json();
+                
+                firebase.initializeApp(firebaseConfig);
+                db = firebase.firestore();
+                
+                // Configure Firestore settings for better connectivity
+                db.settings({
+                    experimentalForceLongPolling: true // Use long polling instead of WebChannel
+                });
+                
+                // Enable offline persistence
+                db.enablePersistence().catch(error => {
+                    console.log('Offline persistence failed:', error);
+                });
+                
+                console.log('Firebase initialized successfully');
+                
+            } catch (error) {
+                console.error('Firebase initialization failed:', error);
+            }
         }
 
         // --- Theme Management ---
@@ -445,7 +483,10 @@
         }
 
         // --- App Initialization ---
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Initialize Firebase first
+            await initializeFirebase();
+            
             // Initialize theme
             initializeTheme();
             document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
@@ -480,9 +521,10 @@
                 clearTimeout(resizeTimeout);
                 resizeTimeout = setTimeout(() => {
                     if (typeof window.currentSchedule !== 'undefined' && window.currentSchedule.length > 0) {
+                        // Refresh the timetable with updated positioning
                         updateScheduleTable(window.currentSchedule);
                     }
-                }, 250); // Wait 250ms after resize stops
+                }, 150); // Reduced delay for better responsiveness
             });
         });
         
@@ -758,6 +800,13 @@
             document.querySelector(`.tab-btn[data-tab="${tabName}"]`).classList.add('active', 'text-blue-600');
             document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
             document.getElementById(tabName + '-tab').classList.remove('hidden');
+            
+            // Rebuild timetable when switching to timetable tab (to handle hidden measurement issues)
+            if (tabName === 'timetable' && typeof window.currentSchedule !== 'undefined') {
+                setTimeout(() => {
+                    updateScheduleTable(window.currentSchedule);
+                }, 50); // Small delay to ensure tab is visible
+            }
         }
         document.querySelectorAll('.tab-btn').forEach(button => {
             button.addEventListener('click', () => switchTab(button.getAttribute('data-tab')));
@@ -961,133 +1010,266 @@
             };
         }
 
+        // --- Time Scale and Positioning System ---
+        function buildTimeScale() {
+            const timeSlots = generateTimeSlots();
+            const headerCells = document.querySelectorAll('.schedule-table thead th:not(:first-child)');
+            const tableContainer = document.querySelector('.schedule-table');
+            const stickyDayCell = document.querySelector('.schedule-table thead th:first-child');
+            
+            if (!tableContainer || headerCells.length === 0) {
+                return [];
+            }
+            
+            const tableRect = tableContainer.getBoundingClientRect();
+            const dayColumnWidth = stickyDayCell ? stickyDayCell.getBoundingClientRect().width : 0;
+            const scale = [];
+            
+            // Build time breakpoints from header positions, accounting for sticky Day column
+            timeSlots.forEach((timeSlot, index) => {
+                const minutes = parseTimeToMinutes(timeSlot);
+                const headerCell = headerCells[index];
+                if (headerCell) {
+                    const rect = headerCell.getBoundingClientRect();
+                    // Make coordinates relative to the time slots area (excluding sticky Day column)
+                    // This ensures classes align exactly with their time slot columns
+                    scale.push({ 
+                        minutes: minutes, 
+                        x: rect.left - tableRect.left - dayColumnWidth,
+                        width: rect.width
+                    });
+                }
+            });
+            
+            // Sort by minutes to ensure proper ordering
+            scale.sort((a, b) => a.minutes - b.minutes);
+            
+            return scale;
+        }
+        
+        function mapMinutesToX(targetMinutes, timeScale) {
+            if (!timeScale.length) return 0;
+            
+            // Find exact match first (for precise alignment with slot start times)
+            const exactMatch = timeScale.find(slot => slot.minutes === targetMinutes);
+            if (exactMatch) {
+                return exactMatch.x; // Exact alignment with time slot column
+            }
+            
+            // Find the segment containing the target time
+            for (let i = 0; i < timeScale.length - 1; i++) {
+                const current = timeScale[i];
+                const next = timeScale[i + 1];
+                
+                if (targetMinutes >= current.minutes && targetMinutes < next.minutes) {
+                    // Linear interpolation within the segment for precise positioning
+                    const progress = (targetMinutes - current.minutes) / (next.minutes - current.minutes);
+                    return current.x + (current.width * progress);
+                }
+            }
+            
+            // Handle edge cases
+            if (targetMinutes < timeScale[0].minutes) {
+                // Before first slot - align with first slot but indicate it's early
+                return Math.max(0, timeScale[0].x - 10);
+            }
+            
+            // After last slot
+            const lastSlot = timeScale[timeScale.length - 1];
+            if (targetMinutes >= lastSlot.minutes) {
+                const extraMinutes = targetMinutes - lastSlot.minutes;
+                const avgSlotDuration = timeScale.length > 1 ? 
+                    (timeScale[1].minutes - timeScale[0].minutes) : 95;
+                const extraProgress = Math.min(extraMinutes / avgSlotDuration, 1); // Cap at 1 to prevent overflow
+                return lastSlot.x + (lastSlot.width * extraProgress);
+            }
+            
+            return lastSlot.x + lastSlot.width;
+        }
+        
+        // --- Enhanced Collision Detection ---
+        function calculateLaneAssignments(dayClasses) {
+            if (!dayClasses || dayClasses.length === 0) {
+                return [];
+            }
+            
+            // Convert times to minutes and sort by start time
+            const classesWithMinutes = dayClasses.map(cls => ({
+                ...cls,
+                startMinutes: parseTimeToMinutes(cls.startTime),
+                endMinutes: parseTimeToMinutes(cls.endTime)
+            })).sort((a, b) => a.startMinutes - b.startMinutes);
+            
+            // Track end times for each lane
+            const lanes = [];
+            
+            classesWithMinutes.forEach(cls => {
+                // Find the first available lane (one where no class conflicts)
+                let assignedLane = 0;
+                while (assignedLane < lanes.length && lanes[assignedLane] > cls.startMinutes) {
+                    assignedLane++;
+                }
+                
+                // Assign this lane and update its end time
+                if (assignedLane >= lanes.length) {
+                    lanes.push(cls.endMinutes);
+                } else {
+                    lanes[assignedLane] = cls.endMinutes;
+                }
+                
+                cls.lane = assignedLane;
+                cls.totalLanes = lanes.length;
+            });
+            
+            // Update total lanes for all classes
+            classesWithMinutes.forEach(cls => {
+                cls.totalLanes = lanes.length;
+            });
+            
+            return classesWithMinutes;
+        }
+        
+        // --- New Schedule Table Renderer ---
         function updateScheduleTable(schedule) {
             const tableBody = document.getElementById('schedule-table');
             tableBody.innerHTML = '';
             
             const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
-            const timeSlots = generateTimeSlots();
             const currentUser = localStorage.getItem('userName');
             
-            // Create a row for each day
-            days.forEach(day => {
-                const row = document.createElement('tr');
-                row.className = 'hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors';
+            // Wait for the table to be rendered before building time scale
+            setTimeout(() => {
+                const timeScale = buildTimeScale();
                 
-                // First cell: Day name (sticky to match header)
-                const dayCell = document.createElement('td');
-                dayCell.className = 'p-3 border-t font-semibold text-gray-800 dark:text-gray-200 bg-white dark:bg-slate-800 sticky left-0 z-10 min-w-20 border-r border-gray-200 dark:border-gray-600';
-                dayCell.style.verticalAlign = 'top';
-                dayCell.textContent = day;
-                row.appendChild(dayCell);
-                
-                // Get all classes for this day
-                const dayClasses = schedule.filter(cls => cls.day === day);
-                
-                // Calculate lane assignments for overlapping classes
-                const classesWithLanes = calculateLaneAssignments(dayClasses);
-                const maxLanes = classesWithLanes.length > 0 ? Math.max(...classesWithLanes.map(cls => cls.lane || 0)) + 1 : 1;
-                
-                // Create a single cell containing the CSS Grid container
-                const gridContainerCell = document.createElement('td');
-                gridContainerCell.className = 'border-t border-gray-200 dark:border-gray-600 p-1';
-                gridContainerCell.colSpan = timeSlots.length;
-                gridContainerCell.style.verticalAlign = 'top';
-                
-                // Create the actual CSS Grid container inside the cell
-                const gridContainer = document.createElement('div');
-                gridContainer.className = 'day-grid';
-                gridContainer.style.gridTemplateColumns = `repeat(${timeSlots.length}, 1fr)`;
-                gridContainer.style.minHeight = `${Math.max(80, maxLanes * 75)}px`;
-                
-                // Add all classes to the grid container
-                classesWithLanes.forEach(cls => {
-                    const classDiv = document.createElement('div');
+                days.forEach(day => {
+                    const row = document.createElement('tr');
+                    row.className = 'hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors';
                     
-                    // Calculate grid position
-                    const startSlotIndex = findTimeSlotIndex(cls.startTime, timeSlots);
-                    const endSlotIndex = findEndSlotIndex(cls.endTime, timeSlots);
-                    const lane = cls.lane || 0;
+                    // Day name cell (sticky)
+                    const dayCell = document.createElement('td');
+                    dayCell.className = 'p-3 border-t font-semibold text-gray-800 dark:text-gray-200 bg-white dark:bg-slate-800 sticky left-0 z-10 min-w-20 border-r border-gray-200 dark:border-gray-600';
+                    dayCell.style.verticalAlign = 'top';
+                    dayCell.textContent = day;
+                    row.appendChild(dayCell);
                     
-                    // Grid positioning using CSS Grid properties
-                    classDiv.style.gridColumn = `${startSlotIndex + 1} / ${endSlotIndex + 1}`;
-                    classDiv.style.gridRow = `${lane + 1} / ${lane + 2}`;
+                    // Single spanning cell for the overlay container
+                    const overlayCell = document.createElement('td');
+                    overlayCell.className = 'border-t border-gray-200 dark:border-gray-600 p-0 relative';
+                    overlayCell.colSpan = 7; // Span all time slot columns
+                    overlayCell.style.verticalAlign = 'top';
                     
-                    // Enhanced styling for current user vs others
-                    const isCurrentUser = cls.addedBy === currentUser;
-                    const baseClasses = 'border rounded-lg p-2 text-center cursor-pointer transition-all text-xs overflow-hidden shadow-sm class-card';
+                    // Get classes for this day and calculate lanes
+                    const dayClasses = schedule.filter(cls => cls.day === day);
+                    const classesWithLanes = calculateLaneAssignments(dayClasses);
+                    const maxLanes = classesWithLanes.length > 0 ? 
+                        Math.max(...classesWithLanes.map(cls => cls.totalLanes || 1)) : 1;
                     
-                    if (isCurrentUser) {
-                        classDiv.className = `${baseClasses} bg-green-100 dark:bg-green-900 border-green-300 dark:border-green-600 hover:bg-green-200 dark:hover:bg-green-800`;
-                    } else {
-                        classDiv.className = `${baseClasses} bg-blue-100 dark:bg-blue-900 border-blue-300 dark:border-blue-600 hover:bg-blue-200 dark:hover:bg-blue-800`;
-                    }
+                    // Create overlay container
+                    const overlay = document.createElement('div');
+                    overlay.className = 'absolute inset-0 overflow-hidden';
+                    overlay.style.height = `${Math.max(80, maxLanes * 65 + 10)}px`;
+                    overlay.style.minHeight = '80px';
                     
-                    // Add click handler for editing (only for current user's classes)
-                    if (isCurrentUser) {
-                        classDiv.onclick = () => editClassFromTimetable(cls.id, cls.day, cls.startTime, cls.endTime, cls.location, cls.subject);
-                        classDiv.title = `Click to edit: ${cls.subject} • ${cls.location || 'TBA'} • ${formatTime(cls.startTime)}–${formatTime(cls.endTime)}`;
-                    } else {
-                        classDiv.title = `${cls.subject} • ${cls.location || 'TBA'} • ${formatTime(cls.startTime)}–${formatTime(cls.endTime)} (Added by ${cls.addedBy})`;
-                    }
+                    // Render each class as absolutely positioned element
+                    classesWithLanes.forEach(cls => {
+                        const classDiv = renderClassCard(cls, timeScale, currentUser);
+                        overlay.appendChild(classDiv);
+                    });
                     
-                    // Create content layout
-                    const contentDiv = document.createElement('div');
-                    contentDiv.className = 'h-full flex flex-col justify-center items-center px-1 py-1';
+                    // Set cell height to match overlay
+                    overlayCell.style.height = overlay.style.height;
                     
-                    // User name
-                    const addedByDiv = document.createElement('div');
-                    addedByDiv.className = isCurrentUser 
-                        ? 'text-green-800 dark:text-green-200 font-bold mb-1' 
-                        : 'text-blue-800 dark:text-blue-200 font-bold mb-1';
-                    addedByDiv.textContent = (cls.addedBy || 'Unknown').length > 8 
-                        ? (cls.addedBy || 'Unknown').substring(0, 8) + '...' 
-                        : (cls.addedBy || 'Unknown');
-                    addedByDiv.style.fontSize = '9px';
-                    addedByDiv.style.lineHeight = '1.1';
-                    
-                    // Subject name
-                    const subjectDiv = document.createElement('div');
-                    subjectDiv.className = isCurrentUser 
-                        ? 'text-green-900 dark:text-green-100 font-semibold mb-1' 
-                        : 'text-blue-900 dark:text-blue-100 font-semibold mb-1';
-                    subjectDiv.textContent = cls.subject?.length > 12 
-                        ? cls.subject.substring(0, 12) + '...' 
-                        : cls.subject || 'Untitled';
-                    subjectDiv.style.fontSize = '10px';
-                    subjectDiv.style.lineHeight = '1.2';
-                    
-                    // Location
-                    const locationDiv = document.createElement('div');
-                    locationDiv.className = isCurrentUser 
-                        ? 'text-green-700 dark:text-green-300 mb-1' 
-                        : 'text-blue-700 dark:text-blue-300 mb-1';
-                    locationDiv.textContent = cls.location || 'TBA';
-                    locationDiv.style.fontSize = '9px';
-                    locationDiv.style.lineHeight = '1.1';
-                    
-                    // Time range
-                    const timeDiv = document.createElement('div');
-                    timeDiv.className = isCurrentUser 
-                        ? 'text-green-600 dark:text-green-400' 
-                        : 'text-blue-600 dark:text-blue-400';
-                    timeDiv.textContent = `${formatTime(cls.startTime)}–${formatTime(cls.endTime)}`;
-                    timeDiv.style.fontSize = '8px';
-                    timeDiv.style.lineHeight = '1.1';
-                    
-                    contentDiv.appendChild(addedByDiv);
-                    contentDiv.appendChild(subjectDiv);
-                    contentDiv.appendChild(locationDiv);
-                    contentDiv.appendChild(timeDiv);
-                    classDiv.appendChild(contentDiv);
-                    
-                    gridContainer.appendChild(classDiv);
+                    overlayCell.appendChild(overlay);
+                    row.appendChild(overlayCell);
+                    tableBody.appendChild(row);
                 });
                 
-                gridContainerCell.appendChild(gridContainer);
-                row.appendChild(gridContainerCell);
-                tableBody.appendChild(row);
-            });
+            }, 10); // Small delay to ensure table headers are rendered
+        }
+        
+        // --- Class Card Renderer ---
+        function renderClassCard(cls, timeScale, currentUser) {
+            const classDiv = document.createElement('div');
+            
+            // Calculate precise positioning for exact alignment with time slots
+            const startX = mapMinutesToX(cls.startMinutes, timeScale);
+            const endX = mapMinutesToX(cls.endMinutes, timeScale);
+            const width = Math.max(endX - startX, 80); // Minimum width of 80px for readability
+            
+            // Lane-based vertical positioning
+            const laneHeight = 60;
+            const laneGap = 5;
+            const top = (cls.lane || 0) * (laneHeight + laneGap) + 5;
+            
+            // Apply absolute positioning within overlay container
+            classDiv.style.position = 'absolute';
+            classDiv.style.left = `${Math.max(0, startX)}px`;
+            classDiv.style.width = `${width}px`;
+            classDiv.style.top = `${top}px`;
+            classDiv.style.height = `${laneHeight}px`;
+            classDiv.style.zIndex = '10';
+            
+            // Styling
+            const isCurrentUser = cls.addedBy === currentUser;
+            const baseClasses = 'border rounded-lg p-2 cursor-pointer transition-all overflow-hidden shadow-sm class-card flex flex-col justify-center';
+            
+            if (isCurrentUser) {
+                classDiv.className = `${baseClasses} bg-green-100 dark:bg-green-900 border-green-300 dark:border-green-600 hover:bg-green-200 dark:hover:bg-green-800`;
+            } else {
+                classDiv.className = `${baseClasses} bg-blue-100 dark:bg-blue-900 border-blue-300 dark:border-blue-600 hover:bg-blue-200 dark:hover:bg-blue-800`;
+            }
+            
+            // Click handler and tooltip
+            if (isCurrentUser) {
+                classDiv.onclick = () => editClassFromTimetable(cls.id, cls.day, cls.startTime, cls.endTime, cls.location, cls.subject);
+                classDiv.title = `Click to edit: ${cls.subject} • ${cls.location || 'TBA'} • ${formatTime(cls.startTime)}–${formatTime(cls.endTime)}`;
+            } else {
+                classDiv.title = `${cls.subject} • ${cls.location || 'TBA'} • ${formatTime(cls.startTime)}–${formatTime(cls.endTime)} (Added by ${cls.addedBy})`;
+            }
+            
+            // Content with proper font hierarchy
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'text-center flex flex-col justify-center h-full px-1';
+            
+            // User name (Name > Subject=Location=Time hierarchy)
+            const addedByDiv = document.createElement('div');
+            addedByDiv.className = isCurrentUser 
+                ? 'text-green-800 dark:text-green-200 font-bold class-card-name mb-1' 
+                : 'text-blue-800 dark:text-blue-200 font-bold class-card-name mb-1';
+            addedByDiv.textContent = (cls.addedBy || 'Unknown').length > 10 
+                ? (cls.addedBy || 'Unknown').substring(0, 10) + '...' 
+                : (cls.addedBy || 'Unknown');
+            
+            // Subject name (smaller than name, same as location/time)
+            const subjectDiv = document.createElement('div');
+            subjectDiv.className = isCurrentUser 
+                ? 'text-green-900 dark:text-green-100 font-semibold class-card-details mb-1' 
+                : 'text-blue-900 dark:text-blue-100 font-semibold class-card-details mb-1';
+            subjectDiv.textContent = cls.subject?.length > 15 
+                ? cls.subject.substring(0, 15) + '...' 
+                : cls.subject || 'Untitled';
+            
+            // Location (same size as subject and time)
+            const locationDiv = document.createElement('div');
+            locationDiv.className = isCurrentUser 
+                ? 'text-green-700 dark:text-green-300 class-card-details mb-1' 
+                : 'text-blue-700 dark:text-blue-300 class-card-details mb-1';
+            locationDiv.textContent = cls.location || 'TBA';
+            
+            // Time (same size as subject and location)
+            const timeDiv = document.createElement('div');
+            timeDiv.className = isCurrentUser 
+                ? 'text-green-600 dark:text-green-400 class-card-details' 
+                : 'text-blue-600 dark:text-blue-400 class-card-details';
+            timeDiv.textContent = `${formatTime(cls.startTime)}–${formatTime(cls.endTime)}`;
+            
+            contentDiv.appendChild(addedByDiv);
+            contentDiv.appendChild(subjectDiv);
+            contentDiv.appendChild(locationDiv);
+            contentDiv.appendChild(timeDiv);
+            classDiv.appendChild(contentDiv);
+            
+            return classDiv;
         }
         
         // Helper function to check if any class overlaps with a time slot
