@@ -208,17 +208,23 @@
                         </form>
                     </div>
                 </div>
-                <h2 class="text-xl font-semibold mb-4 text-gray-800"><i class="fas fa-calendar-check mr-2"></i>Group Weekly Schedule</h2>
+                <h2 class="text-xl font-semibold mb-4 text-gray-800"><i class="fas fa-calendar-check mr-2"></i>Interactive Weekly Schedule</h2>
                 <div class="overflow-x-auto">
                     <table class="w-full bg-white rounded-xl shadow-sm">
                         <thead>
                             <tr class="bg-gray-100">
-                                <th class="p-4 text-left font-semibold text-gray-700">Time</th>
-                                <th class="p-4 text-left font-semibold text-gray-700">Monday</th>
-                                <th class="p-4 text-left font-semibold text-gray-700">Tuesday</th>
-                                <th class="p-4 text-left font-semibold text-gray-700">Wednesday</th>
-                                <th class="p-4 text-left font-semibold text-gray-700">Thursday</th>
-                                <th class="p-4 text-left font-semibold text-gray-700">Friday</th>
+                                <th class="p-3 text-left font-semibold text-gray-700 sticky left-0 bg-gray-100">Day</th>
+                                <th class="p-2 text-center font-semibold text-gray-700 min-w-24 text-xs">8:00</th>
+                                <th class="p-2 text-center font-semibold text-gray-700 min-w-24 text-xs">9:00</th>
+                                <th class="p-2 text-center font-semibold text-gray-700 min-w-24 text-xs">10:00</th>
+                                <th class="p-2 text-center font-semibold text-gray-700 min-w-24 text-xs">11:00</th>
+                                <th class="p-2 text-center font-semibold text-gray-700 min-w-24 text-xs">12:00</th>
+                                <th class="p-2 text-center font-semibold text-gray-700 min-w-24 text-xs">13:00</th>
+                                <th class="p-2 text-center font-semibold text-gray-700 min-w-24 text-xs">14:00</th>
+                                <th class="p-2 text-center font-semibold text-gray-700 min-w-24 text-xs">15:00</th>
+                                <th class="p-2 text-center font-semibold text-gray-700 min-w-24 text-xs">16:00</th>
+                                <th class="p-2 text-center font-semibold text-gray-700 min-w-24 text-xs">17:00</th>
+                                <th class="p-2 text-center font-semibold text-gray-700 min-w-24 text-xs">18:00</th>
                             </tr>
                         </thead>
                         <tbody id="schedule-table"></tbody>
@@ -415,13 +421,13 @@
                     return aTime - bTime;
                 });
                 
-                // Check for classes starting soon (5 minutes before)
+                // Check for classes starting soon (20 minutes before)
                 memberClassesToday.forEach(cls => {
                     const startTime = parseTimeToMinutes(cls.startTime);
                     const endTime = parseTimeToMinutes(cls.endTime);
                     
-                    // Class starting in 5 minutes
-                    if (currentTime >= startTime - 5 && currentTime < startTime) {
+                    // Class starting in 20 minutes
+                    if (currentTime >= startTime - 20 && currentTime < startTime) {
                         addActivityMessage(`${member} will be going to ${cls.location || 'class'} for ${cls.subject} at ${formatTime(cls.startTime)}`);
                     }
                     
@@ -721,17 +727,23 @@
         function updateClassList(schedule) {
             const classList = document.getElementById('class-list');
             classList.innerHTML = '';
-            if (schedule.length === 0) {
-                classList.innerHTML = '<p class="text-gray-500 text-center">No classes in this group yet. Add one from the form above!</p>';
+            
+            // Filter to show only current user's classes
+            const currentUser = localStorage.getItem('userName');
+            const userSchedule = schedule.filter(cls => cls.addedBy === currentUser);
+            
+            if (userSchedule.length === 0) {
+                classList.innerHTML = '<p class="text-gray-500 text-center">You haven\'t added any classes yet. Add one from the form above!</p>';
                 return;
             }
             
-            // Sort classes: user's classes first, then others
-            const currentUser = localStorage.getItem('userName');
-            const sortedSchedule = schedule.sort((a, b) => {
-                if (a.addedBy === currentUser && b.addedBy !== currentUser) return -1;
-                if (a.addedBy !== currentUser && b.addedBy === currentUser) return 1;
-                return 0; // Keep original order for same category
+            // Sort user's classes by day and time
+            const sortedSchedule = userSchedule.sort((a, b) => {
+                const dayOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+                const dayA = dayOrder.indexOf(a.day);
+                const dayB = dayOrder.indexOf(b.day);
+                if (dayA !== dayB) return dayA - dayB;
+                return parseTimeToMinutes(a.startTime) - parseTimeToMinutes(b.startTime);
             });
             
             sortedSchedule.forEach(cls => {
@@ -799,45 +811,100 @@
         }
 
         function updateScheduleTable(schedule) {
-            const timeSlots = generateTimeSlots();
             const tableBody = document.getElementById('schedule-table');
             tableBody.innerHTML = '';
-            timeSlots.forEach(timeSlot => {
+            
+            const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+            const startHour = 8; // 8:00 AM
+            const endHour = 19; // 7:00 PM (exclusive)
+            const totalHours = endHour - startHour; // 11 hours total
+            
+            // Create a row for each day
+            days.forEach(day => {
                 const row = document.createElement('tr');
-                row.innerHTML = `<td class="p-3 border-t font-medium text-xs md:text-sm">${timeSlot}</td>`;
-                ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].forEach(day => {
-                    const cell = document.createElement('td');
-                    cell.className = 'p-1 border-t relative';
-                    const cellClasses = schedule.filter(cls => cls.day === day && isTimeInSlot(timeSlot, cls.startTime, cls.endTime));
-                    if (cellClasses.length > 0) {
-                        // Create class entries safely without innerHTML
-                        cellClasses.forEach(cls => {
+                row.className = 'hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors';
+                
+                // First cell: Day name (sticky to match header)
+                const dayCell = document.createElement('td');
+                dayCell.className = 'p-3 border-t font-semibold text-gray-800 dark:text-gray-200 bg-white dark:bg-slate-800 sticky left-0 z-10 min-w-20 border-r border-gray-200 dark:border-gray-600';
+                dayCell.textContent = day;
+                row.appendChild(dayCell);
+                
+                // Get all classes for this day, sorted by start time
+                const dayClasses = schedule.filter(cls => cls.day === day)
+                    .sort((a, b) => parseTimeToMinutes(a.startTime) - parseTimeToMinutes(b.startTime));
+                
+                let currentHour = startHour;
+                let classIndex = 0;
+                
+                // Fill the row with appropriate cells
+                while (currentHour < endHour) {
+                    const currentClass = classIndex < dayClasses.length ? dayClasses[classIndex] : null;
+                    
+                    if (currentClass) {
+                        const classStartMinutes = parseTimeToMinutes(currentClass.startTime);
+                        const classEndMinutes = parseTimeToMinutes(currentClass.endTime);
+                        const classStartHour = Math.floor(classStartMinutes / 60);
+                        const classEndHour = Math.ceil(classEndMinutes / 60);
+                        
+                        // If there's a gap before this class, fill with empty cells
+                        while (currentHour < classStartHour && currentHour < endHour) {
+                            const emptyCell = document.createElement('td');
+                            emptyCell.className = 'p-1 border-t border-r border-gray-200 dark:border-gray-600 min-w-24 h-16 hover:bg-blue-50 dark:hover:bg-slate-600 transition-colors';
+                            row.appendChild(emptyCell);
+                            currentHour++;
+                        }
+                        
+                        // Create class cell with appropriate colSpan
+                        if (currentHour < endHour) {
+                            const classSpan = Math.min(classEndHour - classStartHour, endHour - currentHour);
+                            const classCell = document.createElement('td');
+                            classCell.className = 'p-1 border-t border-r border-gray-200 dark:border-gray-600 min-w-24 h-16 align-top relative';
+                            
+                            if (classSpan > 1) {
+                                classCell.setAttribute('colSpan', classSpan.toString());
+                            }
+                            
+                            // Create class content
                             const classDiv = document.createElement('div');
-                            classDiv.className = 'bg-blue-100 border border-blue-300 rounded-lg p-2 text-center mb-1';
+                            classDiv.className = 'bg-blue-100 dark:bg-blue-900 border border-blue-300 dark:border-blue-600 rounded-md p-2 text-center h-full cursor-pointer hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors flex flex-col justify-center';
                             
-                            // Create user name element safely (on top, bigger font)
+                            // User name (top, bigger)
                             const addedByDiv = document.createElement('div');
-                            addedByDiv.className = 'font-medium text-blue-900 text-sm';
-                            addedByDiv.textContent = cls.addedBy;
+                            addedByDiv.className = 'font-semibold text-blue-900 dark:text-blue-100 text-xs leading-tight mb-1';
+                            addedByDiv.textContent = currentClass.addedBy;
                             
-                            // Create subject element safely (smaller font)
+                            // Subject (smaller)
                             const subjectDiv = document.createElement('div');
-                            subjectDiv.className = 'text-xs text-blue-700';
-                            subjectDiv.textContent = cls.subject;
+                            subjectDiv.className = 'text-xs text-blue-700 dark:text-blue-200 leading-tight mb-1';
+                            subjectDiv.textContent = currentClass.subject;
                             
-                            // Create location element safely (same font as subject)
+                            // Location (same as subject)
                             const locationDiv = document.createElement('div');
-                            locationDiv.className = 'text-xs text-blue-700';
-                            locationDiv.textContent = cls.location || 'No location';
+                            locationDiv.className = 'text-xs text-blue-600 dark:text-blue-300 font-medium';
+                            locationDiv.textContent = currentClass.location || 'TBA';
+                            
+                            // Tooltip
+                            classDiv.title = `${currentClass.subject} • ${currentClass.location || 'TBA'} • ${formatTime(currentClass.startTime)}–${formatTime(currentClass.endTime)}`;
                             
                             classDiv.appendChild(addedByDiv);
                             classDiv.appendChild(subjectDiv);
                             classDiv.appendChild(locationDiv);
-                            cell.appendChild(classDiv);
-                        });
+                            classCell.appendChild(classDiv);
+                            row.appendChild(classCell);
+                            
+                            currentHour += classSpan;
+                            classIndex++;
+                        }
+                    } else {
+                        // No more classes, fill remaining with empty cells
+                        const emptyCell = document.createElement('td');
+                        emptyCell.className = 'p-1 border-t border-r border-gray-200 dark:border-gray-600 min-w-24 h-16 hover:bg-blue-50 dark:hover:bg-slate-600 transition-colors';
+                        row.appendChild(emptyCell);
+                        currentHour++;
                     }
-                    row.appendChild(cell);
-                });
+                }
+                
                 tableBody.appendChild(row);
             });
         }
