@@ -87,18 +87,37 @@
             outline-offset: 2px !important;
         }
         
-        /* Enhanced timetable styles */
+        /* Enhanced timetable styles with consolidated grid strategy */
         .schedule-table {
             table-layout: fixed;
+            border-collapse: separate;
+            border-spacing: 0;
+            position: relative;
         }
         
+        /* Single grid line strategy - horizontal and vertical lines */
         .schedule-table th, .schedule-table td {
-            border-color: #e5e7eb;
-            border-width: 1px;
+            border: none;
+            position: relative;
+            padding: var(--cell-padding);
+            vertical-align: top;
         }
         
-        .dark .schedule-table th, .dark .schedule-table td {
-            border-color: #4b5563;
+        /* Horizontal grid lines between rows */
+        .schedule-table tbody tr:not(:last-child) td::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: -1px;
+            height: 2px;
+            background-color: #e5e7eb;
+            z-index: 1;
+            pointer-events: none;
+        }
+        
+        .dark .schedule-table tbody tr:not(:last-child) td::after {
+            background-color: #4b5563;
         }
         
         /* Improve class card visibility */
@@ -163,36 +182,86 @@
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
         }
         
-        /* Sticky column improvements */
+        /* Consolidated vertical grid lines with proper z-index hierarchy */
+        .schedule-table th:not(:first-child)::before,
+        .schedule-table td:not(:first-child)::before {
+            content: '';
+            position: absolute;
+            left: -1px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background-color: #e5e7eb;
+            z-index: 1;
+            pointer-events: none;
+        }
+        
+        .dark .schedule-table th:not(:first-child)::before,
+        .dark .schedule-table td:not(:first-child)::before {
+            background-color: #4b5563;
+        }
+        
+        /* Move sticky positioning from thead to individual th elements for better compatibility */
+        .schedule-table thead th {
+            position: sticky;
+            top: 0;
+            background-color: #f3f4f6;
+            z-index: 20;
+        }
+        
+        .dark .schedule-table thead th {
+            background-color: #374151;
+        }
+        
+        /* Sticky day column with higher z-index than grid lines */
         .schedule-table th:first-child,
         .schedule-table td:first-child {
             position: sticky;
             left: 0;
-            z-index: 10;
+            z-index: 15;
             background-color: inherit;
         }
         
-        /* Vertical lines to separate time slots */
-        .schedule-table th:not(:first-child),
-        .schedule-table td:not(:first-child) {
-            border-left: 1px solid #e5e7eb;
+        /* Add visible separator between sticky day column and time slots */
+        .schedule-table td:first-child::after {
+            content: '';
+            position: absolute;
+            right: -1px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background-color: #e5e7eb;
+            z-index: 16;
+            pointer-events: none;
         }
         
-        .dark .schedule-table th:not(:first-child),
-        .dark .schedule-table td:not(:first-child) {
-            border-left: 1px solid #4b5563;
+        .dark .schedule-table td:first-child::after {
+            background-color: #4b5563;
         }
         
-        /* Make the vertical lines more prominent */
-        .schedule-table th:not(:first-child):nth-child(even),
-        .schedule-table td:not(:first-child):nth-child(even) {
-            border-left: 2px solid #d1d5db;
+        .schedule-table thead th:first-child {
+            z-index: 25; /* Highest z-index for header + sticky intersection */
         }
         
-        .dark .schedule-table th:not(:first-child):nth-child(even),
-        .dark .schedule-table td:not(:first-child):nth-child(even) {
-            border-left: 2px solid #6b7280;
+        /* Day column background colors */
+        .schedule-table tbody td:first-child {
+            background-color: #f9fafb;
         }
+        
+        .dark .schedule-table tbody td:first-child {
+            background-color: #1f2937;
+        }
+        
+        /* Class cards with higher z-index than grid lines */
+        .class-card {
+            position: relative;
+            z-index: 10;
+        }
+        
+        .class-card:hover {
+            z-index: 100;
+        }
+        
         
         /* Prevent text overflow in class cards */
         .class-card .truncate {
@@ -211,38 +280,65 @@
             width: 100%;
         }
         
-        /* Font hierarchy classes for class cards */
+        /* CSS Custom Properties for responsive font sizing */
+        :root {
+            --cc-name-size: clamp(0.625rem, 1.5vw, 0.875rem); /* 10px to 14px */
+            --cc-detail-size: clamp(0.5rem, 1.2vw, 0.75rem); /* 8px to 12px */
+            --cc-name-line: clamp(0.7rem, 1.8vw, 1rem);
+            --cc-detail-line: clamp(0.6rem, 1.4vw, 0.85rem);
+            --cell-padding: clamp(0.25rem, 1vw, 0.75rem);
+            --min-tap-target: 44px;
+        }
+        
+        /* Font hierarchy classes for class cards with custom properties */
         .class-card-name {
-            font-size: 0.75rem; /* 12px - equivalent to text-xs */
-            line-height: 1rem;
+            font-size: var(--cc-name-size);
+            line-height: var(--cc-name-line);
+            margin-bottom: 0.0625rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
         }
         
         .class-card-details {
-            font-size: 0.625rem; /* 10px - smaller than text-xs but reliable */
-            line-height: 0.875rem;
+            font-size: var(--cc-detail-size);
+            line-height: var(--cc-detail-line);
+            margin-bottom: 0.03125rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
         }
         
-        /* Responsive table improvements */
+        /* Responsive table improvements with mobile optimization */
         @media (max-width: 768px) {
             .schedule-table th, .schedule-table td {
-                min-width: 100px;
-                padding: 2px;
+                min-width: clamp(90px, 15vw, 130px);
+                padding: var(--cell-padding);
+                min-height: var(--min-tap-target);
             }
             
             .class-card {
                 min-width: 80px;
-            }
-            
-            .class-card-name {
-                font-size: 0.625rem; /* 10px on mobile */
-            }
-            
-            .class-card-details {
-                font-size: 0.5rem; /* 8px on mobile */
+                min-height: var(--min-tap-target);
+                padding: 0.5rem;
             }
             
             .day-grid {
                 grid-template-columns: repeat(7, minmax(6rem, 1fr));
+            }
+            
+            /* Enable scroll snap for smooth mobile navigation */
+            .schedule-table-container {
+                scroll-snap-type: x mandatory;
+            }
+            
+            .schedule-table th:not(:first-child),
+            .schedule-table td:not(:first-child) {
+                scroll-snap-align: start;
             }
         }
         
@@ -251,10 +347,40 @@
             overflow-x: auto;
             scroll-behavior: smooth;
         }
+        
+        /* Tooltip styling for truncated text */
+        .has-tooltip {
+            cursor: help;
+            position: relative;
+        }
+        
+        .has-tooltip:hover::after {
+            content: attr(title);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            white-space: nowrap;
+            z-index: 1000;
+            pointer-events: none;
+            max-width: 200px;
+            word-wrap: break-word;
+            white-space: normal;
+        }
+        
+        .dark .has-tooltip:hover::after {
+            background-color: rgba(255, 255, 255, 0.9);
+            color: black;
+        }
     </style>
 </head>
 <body class="min-h-screen">
-    <div class="max-w-6xl mx-auto px-4 py-8">
+    <div class="max-w-7xl mx-auto px-4 py-8">
         <header class="text-center mb-8 relative">
             <!-- Dark Mode Toggle -->
             <button id="theme-toggle" class="absolute top-0 right-0 sm:top-0 sm:right-0 top-2 right-2 p-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors z-10">
@@ -364,18 +490,18 @@
                     </div>
                 </div>
                 <h2 class="text-xl font-semibold mb-4 text-gray-800"><i class="fas fa-calendar-check mr-2"></i>Interactive Weekly Schedule</h2>
-                <div class="overflow-x-auto">
-                    <table class="w-full bg-white rounded-xl shadow-sm schedule-table">
+                <div class="overflow-x-auto w-full schedule-table-container">
+                    <table class="min-w-full bg-white rounded-xl shadow-sm schedule-table" style="width: 100%; table-layout: fixed;">
                         <thead>
                             <tr class="bg-gray-100">
                                 <th class="p-3 text-left font-semibold text-gray-700 sticky left-0 bg-gray-100">Day</th>
-                                <th class="p-3 text-center font-semibold text-gray-700 min-w-32 text-sm">8:30</th>
-                                <th class="p-3 text-center font-semibold text-gray-700 min-w-32 text-sm">10:05</th>
-                                <th class="p-3 text-center font-semibold text-gray-700 min-w-32 text-sm">11:40</th>
-                                <th class="p-3 text-center font-semibold text-gray-700 min-w-32 text-sm">13:15</th>
-                                <th class="p-3 text-center font-semibold text-gray-700 min-w-32 text-sm">14:50</th>
-                                <th class="p-3 text-center font-semibold text-gray-700 min-w-32 text-sm">16:25</th>
-                                <th class="p-3 text-center font-semibold text-gray-700 min-w-32 text-sm">18:00</th>
+                                <th class="p-3 text-center font-semibold text-gray-700 text-sm">8:30</th>
+                                <th class="p-3 text-center font-semibold text-gray-700 text-sm">10:05</th>
+                                <th class="p-3 text-center font-semibold text-gray-700 text-sm">11:40</th>
+                                <th class="p-3 text-center font-semibold text-gray-700 text-sm">13:15</th>
+                                <th class="p-3 text-center font-semibold text-gray-700 text-sm">14:50</th>
+                                <th class="p-3 text-center font-semibold text-gray-700 text-sm">16:25</th>
+                                <th class="p-3 text-center font-semibold text-gray-700 text-sm">18:00</th>
                             </tr>
                         </thead>
                         <tbody id="schedule-table"></tbody>
@@ -482,6 +608,158 @@
             }
         }
 
+        // --- Text Fitting and Dynamic Adjustment Functions ---
+        function fitCardText(card) {
+            if (!card) return;
+            
+            const nameElement = card.querySelector('.class-card-name');
+            const detailElement = card.querySelector('.class-card-details');
+            
+            if (nameElement) {
+                fitTextToContainer(nameElement, '--cc-name-size');
+            }
+            if (detailElement) {
+                fitTextToContainer(detailElement, '--cc-detail-size');
+            }
+        }
+        
+        function fitTextToContainer(element, cssProperty) {
+            if (!element) return;
+            
+            const container = element.closest('.class-card');
+            if (!container) return;
+            
+            // Define fixed size ranges in pixels instead of parsing CSS custom properties
+            const minPx = cssProperty === '--cc-name-size' ? 8 : 6.4; // 0.5rem : 0.4rem
+            const maxPx = cssProperty === '--cc-name-size' ? 16 : 13.6; // 1rem : 0.85rem
+            
+            // Start with maximum font size
+            let fontSize = maxPx;
+            
+            // Store original styles for restoration
+            const originalDisplay = element.style.display;
+            const originalWebkitLineClamp = element.style.webkitLineClamp;
+            const originalWebkitBoxOrient = element.style.webkitBoxOrient;
+            
+            // Temporarily disable line-clamp for accurate measurement
+            element.style.webkitLineClamp = 'unset';
+            element.style.webkitBoxOrient = 'unset';
+            element.style.display = 'block';
+            
+            // Set initial font size
+            element.style.fontSize = `${fontSize}px`;
+            
+            // Get container bounds
+            const containerRect = container.getBoundingClientRect();
+            const containerPadding = parseFloat(getComputedStyle(container).paddingLeft) + 
+                                   parseFloat(getComputedStyle(container).paddingRight);
+            const availableWidth = containerRect.width - containerPadding;
+            const availableHeight = containerRect.height - parseFloat(getComputedStyle(container).paddingTop) - 
+                                  parseFloat(getComputedStyle(container).paddingBottom);
+            
+            // Iteratively reduce font size until text fits with safety checks
+            let iterations = 0;
+            const maxIterations = 50; // Prevent infinite loops
+            
+            while (fontSize >= minPx && iterations < maxIterations) {
+                element.style.fontSize = `${fontSize}px`;
+                
+                const elementRect = element.getBoundingClientRect();
+                
+                // Check if content fits within available space
+                if (elementRect.width <= availableWidth && elementRect.height <= availableHeight) {
+                    break;
+                }
+                
+                fontSize -= 0.5;
+                iterations++;
+            }
+            
+            // Ensure minimum font size
+            if (fontSize < minPx) {
+                fontSize = minPx;
+                element.style.fontSize = `${fontSize}px`;
+            }
+            
+            // Restore original styles
+            element.style.display = originalDisplay;
+            element.style.webkitLineClamp = originalWebkitLineClamp;
+            element.style.webkitBoxOrient = originalWebkitBoxOrient;
+            
+            // Add tooltip if text is truncated
+            if (fontSize <= minPx || element.scrollHeight > element.clientHeight) {
+                addTooltipToElement(element);
+            } else {
+                removeTooltipFromElement(element);
+            }
+        }
+        
+        function addTooltipToElement(element) {
+            if (!element.hasAttribute('title') && element.textContent.trim()) {
+                element.setAttribute('title', element.textContent.trim());
+                element.classList.add('has-tooltip');
+            }
+        }
+        
+        function removeTooltipFromElement(element) {
+            element.removeAttribute('title');
+            element.classList.remove('has-tooltip');
+        }
+        
+        // Initialize observers for dynamic text adjustment
+        function initializeTextObservers() {
+            // MutationObserver to watch for content changes
+            const contentObserver = new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+                    if (mutation.type === 'childList' || mutation.type === 'characterData') {
+                        const cards = document.querySelectorAll('.class-card');
+                        cards.forEach(card => {
+                            // Debounce to avoid excessive calls
+                            clearTimeout(card._fitTimeout);
+                            card._fitTimeout = setTimeout(() => fitCardText(card), 50);
+                        });
+                    }
+                });
+            });
+            
+            // Observe the schedule table for content changes
+            const scheduleTable = document.getElementById('schedule-table');
+            if (scheduleTable) {
+                contentObserver.observe(scheduleTable, {
+                    childList: true,
+                    subtree: true,
+                    characterData: true
+                });
+            }
+            
+            // ResizeObserver to watch for container size changes
+            if (window.ResizeObserver) {
+                const resizeObserver = new ResizeObserver((entries) => {
+                    entries.forEach((entry) => {
+                        const card = entry.target.closest('.class-card') || entry.target.querySelector('.class-card');
+                        if (card) {
+                            // Debounce resize events
+                            clearTimeout(card._resizeTimeout);
+                            card._resizeTimeout = setTimeout(() => fitCardText(card), 100);
+                        }
+                    });
+                });
+                
+                // Observe all class cards
+                const observeCards = () => {
+                    document.querySelectorAll('.class-card').forEach(card => {
+                        resizeObserver.observe(card);
+                    });
+                };
+                
+                // Initial observation and re-observe when new cards are added
+                observeCards();
+                
+                // Re-observe periodically in case new cards are added
+                setInterval(observeCards, 2000);
+            }
+        }
+
         // --- App Initialization ---
         document.addEventListener('DOMContentLoaded', async () => {
             // Initialize Firebase first
@@ -503,6 +781,9 @@
             }
             document.getElementById('add-update-btn').onclick = addClass;
             
+            // Initialize text fitting observers
+            initializeTextObservers();
+            
             // Initialize clock and status checking
             updateClock();
             setInterval(updateClock, 1000); // Update clock every second
@@ -514,7 +795,7 @@
                 }
             }, 60000); // Check status every minute
             
-            // Add window resize handler for responsive table positioning
+            // Add window resize handler for responsive table positioning and text fitting
             let resizeTimeout;
             window.addEventListener('resize', () => {
                 // Debounce resize events to prevent excessive recalculations
@@ -524,6 +805,11 @@
                         // Refresh the timetable with updated positioning
                         updateScheduleTable(window.currentSchedule);
                     }
+                    
+                    // Re-fit text for all class cards after resize
+                    document.querySelectorAll('.class-card').forEach(card => {
+                        fitCardText(card);
+                    });
                 }, 150); // Reduced delay for better responsiveness
             });
         });
@@ -1093,12 +1379,24 @@
                 return [];
             }
             
-            // Convert times to minutes and sort by start time
-            const classesWithMinutes = dayClasses.map(cls => ({
-                ...cls,
-                startMinutes: parseTimeToMinutes(cls.startTime),
-                endMinutes: parseTimeToMinutes(cls.endTime)
-            })).sort((a, b) => a.startMinutes - b.startMinutes);
+            // Apply time snapping and convert times to minutes, then sort by start time
+            const classesWithMinutes = dayClasses.map(cls => {
+                // Snap start time to nearest time slot
+                const snappedStartTime = snapTimeToSlot(cls.startTime);
+                const snappedStartMinutes = parseTimeToMinutes(snappedStartTime);
+                
+                // Calculate duration to maintain class length
+                const originalDuration = parseTimeToMinutes(cls.endTime) - parseTimeToMinutes(cls.startTime);
+                const snappedEndMinutes = snappedStartMinutes + originalDuration;
+                
+                return {
+                    ...cls,
+                    startMinutes: snappedStartMinutes,
+                    endMinutes: snappedEndMinutes,
+                    originalStartTime: cls.startTime,
+                    originalEndTime: cls.endTime
+                };
+            }).sort((a, b) => a.startMinutes - b.startMinutes);
             
             // Track end times for each lane
             const lanes = [];
@@ -1219,12 +1517,15 @@
                 classDiv.className = `${baseClasses} bg-blue-100 dark:bg-blue-900 border-blue-300 dark:border-blue-600 hover:bg-blue-200 dark:hover:bg-blue-800`;
             }
             
-            // Click handler and tooltip
+            // Click handler and tooltip - use original times for display
+            const displayStartTime = cls.originalStartTime || cls.startTime;
+            const displayEndTime = cls.originalEndTime || cls.endTime;
+            
             if (isCurrentUser) {
-                classDiv.onclick = () => editClassFromTimetable(cls.id, cls.day, cls.startTime, cls.endTime, cls.location, cls.subject);
-                classDiv.title = `Click to edit: ${cls.subject} • ${cls.location || 'TBA'} • ${formatTime(cls.startTime)}–${formatTime(cls.endTime)}`;
+                classDiv.onclick = () => editClassFromTimetable(cls.id, cls.day, displayStartTime, displayEndTime, cls.location, cls.subject);
+                classDiv.title = `Click to edit: ${cls.subject} • ${cls.location || 'TBA'} • ${formatTime(displayStartTime)}–${formatTime(displayEndTime)}`;
             } else {
-                classDiv.title = `${cls.subject} • ${cls.location || 'TBA'} • ${formatTime(cls.startTime)}–${formatTime(cls.endTime)} (Added by ${cls.addedBy})`;
+                classDiv.title = `${cls.subject} • ${cls.location || 'TBA'} • ${formatTime(displayStartTime)}–${formatTime(displayEndTime)} (Added by ${cls.addedBy})`;
             }
             
             // Content with proper font hierarchy
@@ -1256,12 +1557,12 @@
                 : 'text-blue-700 dark:text-blue-300 class-card-details mb-1';
             locationDiv.textContent = cls.location || 'TBA';
             
-            // Time (same size as subject and location)
+            // Time (same size as subject and location) - use original times for display
             const timeDiv = document.createElement('div');
             timeDiv.className = isCurrentUser 
                 ? 'text-green-600 dark:text-green-400 class-card-details' 
                 : 'text-blue-600 dark:text-blue-400 class-card-details';
-            timeDiv.textContent = `${formatTime(cls.startTime)}–${formatTime(cls.endTime)}`;
+            timeDiv.textContent = `${formatTime(displayStartTime)}–${formatTime(displayEndTime)}`;
             
             contentDiv.appendChild(addedByDiv);
             contentDiv.appendChild(subjectDiv);
@@ -1272,6 +1573,35 @@
             return classDiv;
         }
         
+        // Time snapping function - snaps time to nearest time slot start time
+        function snapTimeToSlot(timeString) {
+            const timeSlots = generateTimeSlots();
+            const targetMinutes = parseTimeToMinutes(timeString);
+            
+            let closestSlot = timeSlots[0];
+            let minDifference = Math.abs(targetMinutes - parseTimeToMinutes(timeSlots[0]));
+            
+            // Find the closest time slot start time
+            for (let i = 1; i < timeSlots.length; i++) {
+                const slotMinutes = parseTimeToMinutes(timeSlots[i]);
+                const difference = Math.abs(targetMinutes - slotMinutes);
+                
+                if (difference < minDifference) {
+                    minDifference = difference;
+                    closestSlot = timeSlots[i];
+                }
+            }
+            
+            return closestSlot;
+        }
+
+        // Function to convert minutes back to time string
+        function minutesToTimeString(minutes) {
+            const hours = Math.floor(minutes / 60);
+            const mins = minutes % 60;
+            return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+        }
+
         // Helper function to check if any class overlaps with a time slot
         function hasClassInSlot(dayClasses, slotStart, slotEnd) {
             return dayClasses.some(cls => {
