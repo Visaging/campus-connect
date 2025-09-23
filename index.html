@@ -179,6 +179,16 @@
             white-space: nowrap;
         }
         
+        /* CSS Grid for timetable days */
+        .day-grid {
+            display: grid;
+            grid-template-columns: repeat(7, minmax(8rem, 1fr));
+            grid-auto-rows: minmax(70px, auto);
+            align-items: stretch;
+            gap: 2px;
+            width: 100%;
+        }
+        
         /* Responsive table improvements */
         @media (max-width: 768px) {
             .schedule-table th, .schedule-table td {
@@ -189,6 +199,10 @@
             .class-card {
                 min-width: 80px;
                 font-size: 10px;
+            }
+            
+            .day-grid {
+                grid-template-columns: repeat(7, minmax(6rem, 1fr));
             }
         }
         
@@ -322,7 +336,6 @@
                                 <th class="p-3 text-center font-semibold text-gray-700 min-w-32 text-sm">14:50</th>
                                 <th class="p-3 text-center font-semibold text-gray-700 min-w-32 text-sm">16:25</th>
                                 <th class="p-3 text-center font-semibold text-gray-700 min-w-32 text-sm">18:00</th>
-                                <th class="p-3 text-center font-semibold text-gray-700 min-w-32 text-sm">19:30</th>
                             </tr>
                         </thead>
                         <tbody id="schedule-table"></tbody>
@@ -815,162 +828,136 @@
         }
         
 
-        // --- Interval Lane Packing Algorithm ---
+        // --- Simple Lane Assignment for Grid Overlaps ---
         function calculateLaneAssignments(dayClasses) {
-            // Input: array of classes for a specific day
-            // Output: array of classes with assigned lane numbers (0, 1, 2, etc.)
-            // Algorithm: Interval scheduling with graph coloring
-            
             if (!dayClasses || dayClasses.length === 0) {
                 return [];
             }
             
-            // Convert time strings to minutes for easier calculation
-            const convertedClasses = dayClasses.map(cls => ({
+            // Convert times to minutes and sort by start time
+            const classesWithMinutes = dayClasses.map(cls => ({
                 ...cls,
                 startMinutes: parseTimeToMinutes(cls.startTime),
                 endMinutes: parseTimeToMinutes(cls.endTime)
-            }));
+            })).sort((a, b) => a.startMinutes - b.startMinutes);
             
-            // Sort classes by start time
-            convertedClasses.sort((a, b) => a.startMinutes - b.startMinutes);
-            
-            // Track active lanes and their end times
+            // Track end times for each lane
             const lanes = [];
             
-            convertedClasses.forEach(cls => {
-                // Find the lowest available lane that doesn't conflict
-                let assignedLane = -1;
-                
-                for (let i = 0; i < lanes.length; i++) {
-                    if (lanes[i] <= cls.startMinutes) {
-                        assignedLane = i;
-                        break;
-                    }
+            classesWithMinutes.forEach(cls => {
+                // Find the first available lane (one where no class conflicts)
+                let assignedLane = 0;
+                while (assignedLane < lanes.length && lanes[assignedLane] > cls.startMinutes) {
+                    assignedLane++;
                 }
                 
-                // If no available lane found, create a new one
-                if (assignedLane === -1) {
-                    assignedLane = lanes.length;
+                // Assign this lane and update its end time
+                if (assignedLane >= lanes.length) {
                     lanes.push(cls.endMinutes);
                 } else {
                     lanes[assignedLane] = cls.endMinutes;
                 }
                 
-                // Assign lane number to the class
                 cls.lane = assignedLane;
             });
             
-            // Return array of classes with assigned lane numbers
-            return convertedClasses;
+            return classesWithMinutes;
         }
         
-        // --- Dynamic Row Height Calculator ---
-        function calculateDayRowHeights(schedule) {
-            // Input: complete schedule array
-            // Output: object with day names as keys, required heights as values
-            // Algorithm: Group classes by day, calculate max concurrent lanes per day
+        // --- Find Time Slot Index ---
+        function findTimeSlotIndex(timeString, timeSlots) {
+            if (!timeString) return 0;
             
-            const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
-            const rowHeights = {};
-            const cardHeight = 80; // Height of each class card
-            const verticalGap = 8; // Gap between cards in different lanes
-            const basePadding = 20; // Base padding
-            const baseRowHeight = 100; // Minimum row height
-            
-            days.forEach(day => {
-                const dayClasses = schedule.filter(cls => cls.day === day);
-                if (dayClasses.length === 0) {
-                    rowHeights[day] = baseRowHeight;
-                    return;
-                }
-                
-                // Get classes with lane assignments to find max concurrent lanes
-                const classesWithLanes = calculateLaneAssignments(dayClasses);
-                const maxLanes = classesWithLanes.length > 0 
-                    ? Math.max(...classesWithLanes.map(cls => cls.lane)) + 1 
-                    : 1;
-                
-                // Calculate height = maxLanes × (cardHeight + verticalGap) + padding
-                const calculatedHeight = Math.max(
-                    baseRowHeight,
-                    maxLanes * (cardHeight + verticalGap) + basePadding
-                );
-                rowHeights[day] = calculatedHeight;
-            });
-            
-            return rowHeights;
-        }
-        
-        // --- Enhanced Time-to-Pixel Conversion ---
-        function timeToPixelOffset(timeString, startSlotTime, cellWidth, totalTimeRange) {
             const timeMinutes = parseTimeToMinutes(timeString);
-            const startMinutes = parseTimeToMinutes(startSlotTime);
-            const minutesFromStart = Math.max(0, timeMinutes - startMinutes);
             
-            // Convert minutes to pixel offset within the time range
-            const pixelsPerMinute = cellWidth / totalTimeRange;
-            return Math.min(minutesFromStart * pixelsPerMinute, cellWidth);
+            for (let i = 0; i < timeSlots.length; i++) {
+                const slotMinutes = parseTimeToMinutes(timeSlots[i]);
+                const nextSlotMinutes = i + 1 < timeSlots.length ? 
+                    parseTimeToMinutes(timeSlots[i + 1]) : slotMinutes + 95;
+                
+                if (timeMinutes >= slotMinutes && timeMinutes < nextSlotMinutes) {
+                    return i;
+                }
+            }
+            
+            // If time is before first slot or after last slot
+            if (timeMinutes < parseTimeToMinutes(timeSlots[0])) {
+                return 0;
+            }
+            return timeSlots.length - 1;
         }
         
-        // --- Advanced Positioning System ---
-        function calculateClassPosition(cls, lane, timeSlots) {
-            // Input: class object, assigned lane, timeSlots array
-            // Output: {left, width, top} positioning values in pixels
-            // Algorithm: Convert times to pixels, calculate positioning
+        // --- Find End Time Slot Index for Spanning (Exclusive) ---
+        function findEndSlotIndex(timeString, timeSlots) {
+            if (!timeString) return 1;
             
-            const cardHeight = 80;
-            const verticalGap = 8;
-            const dayCellWidth = 120; // Day column width
-            const cellWidth = 128; // Standard time slot cell width
-            const horizontalPadding = 4;
+            const timeMinutes = parseTimeToMinutes(timeString);
+            
+            // Find which slot the end time falls into
+            for (let i = 0; i < timeSlots.length; i++) {
+                const slotMinutes = parseTimeToMinutes(timeSlots[i]);
+                const nextSlotMinutes = i + 1 < timeSlots.length ? 
+                    parseTimeToMinutes(timeSlots[i + 1]) : slotMinutes + 95;
+                
+                // If end time is within this slot, return the next slot boundary (exclusive)
+                if (timeMinutes > slotMinutes && timeMinutes <= nextSlotMinutes) {
+                    return i + 2; // Exclusive end
+                }
+            }
+            
+            // If time is exactly at a slot start, use that slot
+            if (timeMinutes <= parseTimeToMinutes(timeSlots[0])) {
+                return 1;
+            }
+            
+            // If time is after all slots, span to the end
+            return timeSlots.length + 1;
+        }
+        
+        // --- Simplified Positioning System ---
+        function calculateClassPosition(cls, lane, timeSlots) {
+            const cardHeight = 70;
+            const verticalGap = 4;
+            const horizontalPadding = 2;
             
             // Calculate top offset: lane × (cardHeight + verticalGap)
-            const top = lane * (cardHeight + verticalGap) + 10;
+            const top = lane * (cardHeight + verticalGap) + 4;
             
-            // Convert start/end times to pixel positions
+            // Convert start/end times to minutes
             const classStartMinutes = parseTimeToMinutes(cls.startTime);
             const classEndMinutes = parseTimeToMinutes(cls.endTime);
             
-            // Find the starting time slot index
-            let startSlotIndex = 0;
+            // Find the exact time slot that the class starts in
+            let startSlotIndex = -1;
             for (let i = 0; i < timeSlots.length; i++) {
-                const slotStart = parseTimeToMinutes(timeSlots[i]);
-                if (classStartMinutes >= slotStart) {
+                const slotStartMinutes = parseTimeToMinutes(timeSlots[i]);
+                const nextSlotMinutes = i + 1 < timeSlots.length ? parseTimeToMinutes(timeSlots[i + 1]) : slotStartMinutes + 95;
+                
+                if (classStartMinutes >= slotStartMinutes && classStartMinutes < nextSlotMinutes) {
                     startSlotIndex = i;
-                } else {
                     break;
                 }
             }
             
-            // Handle edge cases - classes before 08:30
-            if (classStartMinutes < parseTimeToMinutes(timeSlots[0])) {
-                startSlotIndex = 0;
+            // If class starts before first slot, put it in first slot
+            if (startSlotIndex === -1) {
+                if (classStartMinutes < parseTimeToMinutes(timeSlots[0])) {
+                    startSlotIndex = 0;
+                } else {
+                    // Class starts after last slot, put it in last slot
+                    startSlotIndex = timeSlots.length - 1;
+                }
             }
             
-            // Handle edge cases - classes after 19:30
-            if (startSlotIndex >= timeSlots.length) {
-                startSlotIndex = timeSlots.length - 1;
-            }
-            
-            // Calculate left offset from day column width + time slot positions
-            const left = dayCellWidth + (startSlotIndex * cellWidth) + horizontalPadding;
-            
-            // Calculate width spanning multiple time slots
-            const slotDuration = 95; // Standard slot duration in minutes (95 minutes per slot)
-            const classDuration = classEndMinutes - classStartMinutes;
-            
-            // Calculate proportional width based on duration
-            let width = Math.max(100, (classDuration / slotDuration) * cellWidth);
-            
-            // Clamp width to reasonable bounds (max 4 slots)
-            const maxSlots = 4;
-            width = Math.min(width, cellWidth * maxSlots) - (horizontalPadding * 2);
+            // Position class exactly within its time slot cell
+            const left = horizontalPadding; // Relative to the cell, not absolute
+            const width = 100 - (horizontalPadding * 2); // Fill most of the cell width (percentage)
             
             return {
                 left: left,
                 width: width,
-                top: top
+                top: top,
+                slotIndex: startSlotIndex
             };
         }
 
@@ -982,20 +969,14 @@
             const timeSlots = generateTimeSlots();
             const currentUser = localStorage.getItem('userName');
             
-            // Calculate dynamic row heights for each day
-            const dayRowHeights = calculateDayRowHeights(schedule);
-            
             // Create a row for each day
             days.forEach(day => {
                 const row = document.createElement('tr');
                 row.className = 'hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors';
-                row.style.position = 'relative';
-                row.style.height = `${dayRowHeights[day]}px`;
                 
                 // First cell: Day name (sticky to match header)
                 const dayCell = document.createElement('td');
                 dayCell.className = 'p-3 border-t font-semibold text-gray-800 dark:text-gray-200 bg-white dark:bg-slate-800 sticky left-0 z-10 min-w-20 border-r border-gray-200 dark:border-gray-600';
-                dayCell.style.height = `${dayRowHeights[day]}px`;
                 dayCell.style.verticalAlign = 'top';
                 dayCell.textContent = day;
                 row.appendChild(dayCell);
@@ -1005,41 +986,42 @@
                 
                 // Calculate lane assignments for overlapping classes
                 const classesWithLanes = calculateLaneAssignments(dayClasses);
+                const maxLanes = classesWithLanes.length > 0 ? Math.max(...classesWithLanes.map(cls => cls.lane || 0)) + 1 : 1;
                 
-                // Create cells for each time slot
-                timeSlots.forEach((slotTime, slotIndex) => {
-                    const slotCell = document.createElement('td');
-                    slotCell.className = 'border-t border-r border-gray-200 dark:border-gray-600 min-w-32 align-top';
-                    slotCell.style.position = 'relative';
-                    slotCell.style.height = `${dayRowHeights[day]}px`;
-                    slotCell.style.padding = '0';
-                    slotCell.style.overflow = 'visible';
-                    
-                    row.appendChild(slotCell);
-                });
+                // Create a single cell containing the CSS Grid container
+                const gridContainerCell = document.createElement('td');
+                gridContainerCell.className = 'border-t border-gray-200 dark:border-gray-600 p-1';
+                gridContainerCell.colSpan = timeSlots.length;
+                gridContainerCell.style.verticalAlign = 'top';
                 
-                // Position all classes for this day using absolute positioning
+                // Create the actual CSS Grid container inside the cell
+                const gridContainer = document.createElement('div');
+                gridContainer.className = 'day-grid';
+                gridContainer.style.gridTemplateColumns = `repeat(${timeSlots.length}, 1fr)`;
+                gridContainer.style.minHeight = `${Math.max(80, maxLanes * 75)}px`;
+                
+                // Add all classes to the grid container
                 classesWithLanes.forEach(cls => {
-                    const lane = cls.lane || 0;
-                    const position = calculateClassPosition(cls, lane, timeSlots);
-                    
                     const classDiv = document.createElement('div');
+                    
+                    // Calculate grid position
+                    const startSlotIndex = findTimeSlotIndex(cls.startTime, timeSlots);
+                    const endSlotIndex = findEndSlotIndex(cls.endTime, timeSlots);
+                    const lane = cls.lane || 0;
+                    
+                    // Grid positioning using CSS Grid properties
+                    classDiv.style.gridColumn = `${startSlotIndex + 1} / ${endSlotIndex + 1}`;
+                    classDiv.style.gridRow = `${lane + 1} / ${lane + 2}`;
                     
                     // Enhanced styling for current user vs others
                     const isCurrentUser = cls.addedBy === currentUser;
-                    const baseClasses = 'absolute border rounded-lg p-2 text-center cursor-pointer transition-all text-xs overflow-hidden shadow-sm class-card';
+                    const baseClasses = 'border rounded-lg p-2 text-center cursor-pointer transition-all text-xs overflow-hidden shadow-sm class-card';
                     
                     if (isCurrentUser) {
-                        classDiv.className = `${baseClasses} bg-green-100 dark:bg-green-900 border-green-300 dark:border-green-600 hover:bg-green-200 dark:hover:bg-green-800 z-30`;
+                        classDiv.className = `${baseClasses} bg-green-100 dark:bg-green-900 border-green-300 dark:border-green-600 hover:bg-green-200 dark:hover:bg-green-800`;
                     } else {
-                        classDiv.className = `${baseClasses} bg-blue-100 dark:bg-blue-900 border-blue-300 dark:border-blue-600 hover:bg-blue-200 dark:hover:bg-blue-800 z-20`;
+                        classDiv.className = `${baseClasses} bg-blue-100 dark:bg-blue-900 border-blue-300 dark:border-blue-600 hover:bg-blue-200 dark:hover:bg-blue-800`;
                     }
-                    
-                    // Apply calculated position
-                    classDiv.style.top = `${position.top}px`;
-                    classDiv.style.left = `${position.left}px`;
-                    classDiv.style.width = `${position.width}px`;
-                    classDiv.style.height = `${position.height}px`;
                     
                     // Add click handler for editing (only for current user's classes)
                     if (isCurrentUser) {
@@ -1049,17 +1031,17 @@
                         classDiv.title = `${cls.subject} • ${cls.location || 'TBA'} • ${formatTime(cls.startTime)}–${formatTime(cls.endTime)} (Added by ${cls.addedBy})`;
                     }
                     
-                    // Create optimized content layout
+                    // Create content layout
                     const contentDiv = document.createElement('div');
                     contentDiv.className = 'h-full flex flex-col justify-center items-center px-1 py-1';
                     
-                    // User name (more compact)
+                    // User name
                     const addedByDiv = document.createElement('div');
                     addedByDiv.className = isCurrentUser 
-                        ? 'text-green-800 dark:text-green-200 font-bold' 
-                        : 'text-blue-800 dark:text-blue-200 font-bold';
-                    addedByDiv.textContent = (cls.addedBy || 'Unknown').length > 6 
-                        ? (cls.addedBy || 'Unknown').substring(0, 6) + '...' 
+                        ? 'text-green-800 dark:text-green-200 font-bold mb-1' 
+                        : 'text-blue-800 dark:text-blue-200 font-bold mb-1';
+                    addedByDiv.textContent = (cls.addedBy || 'Unknown').length > 8 
+                        ? (cls.addedBy || 'Unknown').substring(0, 8) + '...' 
                         : (cls.addedBy || 'Unknown');
                     addedByDiv.style.fontSize = '9px';
                     addedByDiv.style.lineHeight = '1.1';
@@ -1067,11 +1049,10 @@
                     // Subject name
                     const subjectDiv = document.createElement('div');
                     subjectDiv.className = isCurrentUser 
-                        ? 'text-green-900 dark:text-green-100 font-semibold' 
-                        : 'text-blue-900 dark:text-blue-100 font-semibold';
-                    const maxSubjectLength = Math.floor(position.width / 8); // Dynamic based on width
-                    subjectDiv.textContent = cls.subject?.length > maxSubjectLength 
-                        ? cls.subject.substring(0, maxSubjectLength) + '...' 
+                        ? 'text-green-900 dark:text-green-100 font-semibold mb-1' 
+                        : 'text-blue-900 dark:text-blue-100 font-semibold mb-1';
+                    subjectDiv.textContent = cls.subject?.length > 12 
+                        ? cls.subject.substring(0, 12) + '...' 
                         : cls.subject || 'Untitled';
                     subjectDiv.style.fontSize = '10px';
                     subjectDiv.style.lineHeight = '1.2';
@@ -1079,8 +1060,8 @@
                     // Location
                     const locationDiv = document.createElement('div');
                     locationDiv.className = isCurrentUser 
-                        ? 'text-green-700 dark:text-green-300' 
-                        : 'text-blue-700 dark:text-blue-300';
+                        ? 'text-green-700 dark:text-green-300 mb-1' 
+                        : 'text-blue-700 dark:text-blue-300 mb-1';
                     locationDiv.textContent = cls.location || 'TBA';
                     locationDiv.style.fontSize = '9px';
                     locationDiv.style.lineHeight = '1.1';
@@ -1100,10 +1081,11 @@
                     contentDiv.appendChild(timeDiv);
                     classDiv.appendChild(contentDiv);
                     
-                    // Append to the row (will be positioned absolutely)
-                    row.appendChild(classDiv);
+                    gridContainer.appendChild(classDiv);
                 });
                 
+                gridContainerCell.appendChild(gridContainer);
+                row.appendChild(gridContainerCell);
                 tableBody.appendChild(row);
             });
         }
@@ -1198,7 +1180,7 @@
             return `${(h % 12 || 12)}:${m} ${h >= 12 ? 'PM' : 'AM'}`;
         }
         function generateTimeSlots() {
-            return ['08:30', '10:05', '11:40', '13:15', '14:50', '16:25', '18:00', '19:30'];
+            return ['08:30', '10:05', '11:40', '13:15', '14:50', '16:25', '18:00'];
         }
         function isTimeInSlot(currentTime, startTime, endTime) {
             return currentTime >= startTime && currentTime < endTime;
