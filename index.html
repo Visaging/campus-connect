@@ -218,8 +218,8 @@
 
             .schedule-table tbody tr {
                 position: relative;
-                min-height: 70px;
-                height: 70px;
+                min-height: 85px;
+                height: 85px;
             }
 
             .schedule-table tbody td {
@@ -227,8 +227,8 @@
                 overflow: hidden;
                 vertical-align: top;
                 padding: var(--cell-padding);
-                height: 70px;
-                max-height: 70px;
+                height: 85px;
+                max-height: 85px;
             }
 
             /* Unified class card styles */
@@ -241,8 +241,8 @@
                 font-family: "Poppins", sans-serif;
                 min-width: 100px;
                 max-width: 100%;
-                min-height: 60px;
-                padding: 4px 6px;
+                min-height: 85px; /* Increased to 85px to accommodate larger readable text */
+                padding: 4px 6px; /* Increased padding to provide better spacing for larger text */
                 word-wrap: break-word;
                 overflow: hidden;
                 pointer-events: auto;
@@ -350,7 +350,7 @@
             .day-grid {
                 display: grid;
                 grid-template-columns: repeat(7, minmax(8rem, 1fr));
-                grid-auto-rows: minmax(70px, auto);
+                grid-auto-rows: minmax(85px, auto);
                 align-items: stretch;
                 gap: 2px;
                 width: 100%;
@@ -359,17 +359,17 @@
             /* CSS Custom Properties for responsive font sizing */
             :root {
                 --cc-name-size: clamp(
-                    0.625rem,
+                    0.75rem,
                     1.5vw,
-                    0.75rem
-                ); /* 10px to 12px */
+                    0.875rem
+                ); /* 12px to 14px for readability */
                 --cc-detail-size: clamp(
-                    0.5rem,
+                    0.6875rem,
                     1.2vw,
-                    0.625rem
-                ); /* 8px to 10px */
-                --cc-name-line: clamp(0.75rem, 1.8vw, 0.9rem);
-                --cc-detail-line: clamp(0.6rem, 1.4vw, 0.75rem);
+                    0.75rem
+                ); /* 11px to 12px for readability */
+                --cc-name-line: clamp(0.875rem, 1.7vw, 1rem); /* Proper line height for larger text */
+                --cc-detail-line: clamp(0.75rem, 1.3vw, 0.875rem); /* Proper line height for larger text */
                 --cell-padding: clamp(0.25rem, 1vw, 0.5rem);
                 --min-tap-target: 44px;
             }
@@ -378,7 +378,7 @@
             .class-card-name {
                 font-size: var(--cc-name-size);
                 line-height: var(--cc-name-line);
-                margin-bottom: 0.125rem;
+                margin-bottom: 0.125rem; /* Increased spacing for better visual hierarchy */
                 overflow: hidden;
                 text-overflow: ellipsis;
                 display: -webkit-box;
@@ -390,11 +390,11 @@
             .class-card-details {
                 font-size: var(--cc-detail-size);
                 line-height: var(--cc-detail-line);
-                margin-bottom: 0.0625rem;
+                margin-bottom: 0.0625rem; /* Increased spacing for better readability */
                 overflow: hidden;
                 text-overflow: ellipsis;
                 display: -webkit-box;
-                -webkit-line-clamp: 1;
+                -webkit-line-clamp: 2; /* Allow 2-line clamp for better content display */
                 -webkit-box-orient: vertical;
             }
 
@@ -404,15 +404,15 @@
                 .schedule-table td {
                     min-width: clamp(80px, 12vw, 110px);
                     padding: var(--cell-padding);
-                    min-height: 60px;
-                    height: 60px;
-                    max-height: 60px;
+                    min-height: 85px; /* Updated to match new card height */
+                    height: 85px;
+                    max-height: 85px;
                 }
 
                 .class-card {
                     min-width: 70px;
-                    min-height: 50px;
-                    padding: 3px 4px;
+                    min-height: 75px; /* Increased for mobile readability with larger text */
+                    padding: 3px 4px; /* Adequate padding for mobile with readable text */
                     margin: 1px;
                 }
 
@@ -1094,6 +1094,9 @@
                 // Initialize Firebase first
                 await initializeFirebase();
 
+                // Load stored notifications
+                loadStoredNotifications();
+
                 // Initialize theme
                 initializeTheme();
                 document
@@ -1133,6 +1136,9 @@
                         checkClassStatus(window.currentSchedule);
                     }
                 }, 60000); // Check status every minute
+
+                // Cleanup old notifications every 30 minutes
+                setInterval(cleanupOldNotifications, 30 * 60 * 1000);
 
                 // Add window resize handler for responsive table positioning and text fitting
                 let resizeTimeout;
@@ -1298,6 +1304,13 @@
                 )
                     return;
 
+                // Store notification in localStorage with timestamp
+                const notification = {
+                    message: message,
+                    timestamp: Date.now()
+                };
+                storeNotification(notification);
+
                 const activityDiv = document.createElement("div");
                 activityDiv.className =
                     "notification bg-green-50 p-4 rounded-lg border-l-4 border-green-500";
@@ -1314,6 +1327,99 @@
                 activityDiv.appendChild(timeElement);
 
                 // Add to top of list
+                if (
+                    activityList.firstChild &&
+                    !activityList.firstChild.textContent.includes(
+                        "Join a group",
+                    )
+                ) {
+                    activityList.insertBefore(
+                        activityDiv,
+                        activityList.firstChild,
+                    );
+                } else {
+                    activityList.appendChild(activityDiv);
+                }
+            }
+
+            // Store notification in localStorage
+            function storeNotification(notification) {
+                let notifications = getStoredNotifications();
+                notifications.push(notification);
+                localStorage.setItem('campus_connect_notifications', JSON.stringify(notifications));
+                cleanupOldNotifications();
+            }
+
+            // Get stored notifications from localStorage
+            function getStoredNotifications() {
+                const stored = localStorage.getItem('campus_connect_notifications');
+                return stored ? JSON.parse(stored) : [];
+            }
+
+            // Clean up notifications older than 2 hours
+            function cleanupOldNotifications() {
+                const twoHoursAgo = Date.now() - (2 * 60 * 60 * 1000); // 2 hours in milliseconds
+                let notifications = getStoredNotifications();
+                notifications = notifications.filter(notification => 
+                    notification.timestamp > twoHoursAgo
+                );
+                localStorage.setItem('campus_connect_notifications', JSON.stringify(notifications));
+            }
+
+            // Load stored notifications and display them
+            function loadStoredNotifications() {
+                cleanupOldNotifications(); // Clean up old notifications first
+                const notifications = getStoredNotifications();
+                
+                // Sort notifications by timestamp (newest first)
+                notifications.sort((a, b) => b.timestamp - a.timestamp);
+                
+                notifications.forEach(notification => {
+                    displayStoredNotification(notification.message, notification.timestamp);
+                });
+            }
+
+            // Display a stored notification with proper time formatting
+            function displayStoredNotification(message, timestamp) {
+                const activityList = document.getElementById(
+                    "recent-activity-list",
+                );
+
+                // Clear placeholder message if it exists
+                const placeholder = document.getElementById(
+                    "activity-placeholder",
+                );
+                if (placeholder) {
+                    placeholder.remove();
+                }
+
+                // Don't add duplicate messages
+                const existingMessages = Array.from(activityList.children).map(
+                    (child) => child.textContent,
+                );
+                if (
+                    existingMessages.some((existing) =>
+                        existing.includes(message),
+                    )
+                )
+                    return;
+
+                const activityDiv = document.createElement("div");
+                activityDiv.className =
+                    "notification bg-green-50 p-4 rounded-lg border-l-4 border-green-500";
+
+                const activityText = document.createElement("p");
+                activityText.className = "text-sm text-gray-900";
+                activityText.textContent = message;
+
+                const timeElement = document.createElement("p");
+                timeElement.className = "text-xs text-gray-500 mt-1";
+                timeElement.textContent = formatTimeAgo(new Date(timestamp));
+
+                activityDiv.appendChild(activityText);
+                activityDiv.appendChild(timeElement);
+
+                // Add to list in chronological order
                 if (
                     activityList.firstChild &&
                     !activityList.firstChild.textContent.includes(
@@ -2028,7 +2134,7 @@
                         // Create overlay container
                         const overlay = document.createElement("div");
                         overlay.className = "absolute inset-0 overflow-hidden";
-                        overlay.style.height = `${Math.max(80, maxLanes * 65 + 10)}px`;
+                        overlay.style.height = `${Math.max(85, maxLanes * 75 + 10)}px`; /* Adjusted for larger card height */
                         overlay.style.minHeight = "80px";
 
                         // Render each class as absolutely positioned element
@@ -2061,7 +2167,7 @@
                 const width = Math.max(endX - startX, 80); // Minimum width of 80px for readability
 
                 // Lane-based vertical positioning
-                const laneHeight = 60;
+                const laneHeight = 85; /* Updated to 85 to match CSS card heights */
                 const laneGap = 5;
                 const top = (cls.lane || 0) * (laneHeight + laneGap) + 5;
 
