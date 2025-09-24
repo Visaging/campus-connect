@@ -239,10 +239,12 @@
                 border-radius: 6px;
                 transition: all 0.2s ease;
                 font-family: "Poppins", sans-serif;
-                min-width: 100px;
+                min-width: 120px;
                 max-width: 100%;
-                min-height: 85px; /* Increased to 85px to accommodate larger readable text */
-                padding: 4px 6px; /* Increased padding to provide better spacing for larger text */
+                height: 85px;
+                min-height: 85px;
+                max-height: 85px;
+                padding: 6px 8px;
                 word-wrap: break-word;
                 overflow: hidden;
                 pointer-events: auto;
@@ -410,9 +412,11 @@
                 }
 
                 .class-card {
-                    min-width: 70px;
-                    min-height: 75px; /* Increased for mobile readability with larger text */
-                    padding: 3px 4px; /* Adequate padding for mobile with readable text */
+                    min-width: 90px;
+                    height: 85px;
+                    min-height: 85px;
+                    max-height: 85px;
+                    padding: 4px 6px;
                     margin: 1px;
                 }
 
@@ -2134,8 +2138,8 @@
                         // Create overlay container
                         const overlay = document.createElement("div");
                         overlay.className = "absolute inset-0 overflow-hidden";
-                        overlay.style.height = `${Math.max(85, maxLanes * 75 + 10)}px`; /* Adjusted for larger card height */
-                        overlay.style.minHeight = "80px";
+                        overlay.style.height = `${Math.max(85, maxLanes * 85 + (maxLanes - 1) * 5 + 10)}px`; /* Match laneHeight + gaps */
+                        overlay.style.minHeight = "85px";
 
                         // Render each class as absolutely positioned element
                         classesWithLanes.forEach((cls) => {
@@ -2147,8 +2151,9 @@
                             overlay.appendChild(classDiv);
                         });
 
-                        // Set cell height to match overlay
+                        // Set cell height to match overlay with proper containment
                         overlayCell.style.height = overlay.style.height;
+                        overlayCell.style.overflow = "hidden"; /* Ensure cards don't overflow day rows */
 
                         overlayCell.appendChild(overlay);
                         row.appendChild(overlayCell);
@@ -2164,12 +2169,12 @@
                 // Calculate precise positioning for exact alignment with time slots
                 const startX = mapMinutesToX(cls.startMinutes, timeScale);
                 const endX = mapMinutesToX(cls.endMinutes, timeScale);
-                const width = Math.max(endX - startX, 80); // Minimum width of 80px for readability
+                const width = Math.max(endX - startX, 120); // Minimum width of 120px for better readability
 
                 // Lane-based vertical positioning
                 const laneHeight = 85; /* Updated to 85 to match CSS card heights */
                 const laneGap = 5;
-                const top = (cls.lane || 0) * (laneHeight + laneGap) + 5;
+                const top = (cls.lane || 0) * (laneHeight + laneGap) + 2; /* Reduced top margin for better fit */
 
                 // Apply absolute positioning within overlay container
                 classDiv.style.position = "absolute";
